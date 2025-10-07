@@ -1,0 +1,476 @@
+/* style.css */
+
+/* --- Core Variables & Font --- */
+:root {
+    --bg-dark: #1e1e1e;
+    --bg-panel: #362f26;
+    --border-dark: #000000;
+    --border-bevel: #5a5245;
+    --border-highlight: #988e80;
+    --text-yellow: #ffff00;
+    --text-orange: #ff981f;
+    --text-light-grey: #c8c8c8;
+    --text-dark-grey: #8a8a8a;
+
+    --node-locked: #4a4a4a;
+    --node-available-glow: #00aeff;
+    --node-unlocked-glow: #d4af37;
+    --line-locked: #4a4a4a;
+    --line-unlocked: #d4af37;
+
+    --status-red: #d9534f;
+    --status-yellow: #f0ad4e;
+    --status-green: #5cb85c;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive;
+    background-color: var(--bg-dark);
+    color: var(--text-orange);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-size: 12px;
+    image-rendering: pixelated;
+}
+
+/* --- OSRS Panel Styling --- */
+.osrs-panel {
+    background-color: var(--bg-panel);
+    border: 2px solid var(--border-dark);
+    box-shadow: inset 0 0 0 2px var(--border-bevel);
+}
+
+/* --- Main Game Frame --- */
+.osrs-game-frame {
+    width: 960px;
+    height: 720px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* --- Header --- */
+.osrs-game-header {
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    flex-shrink: 0;
+    border-bottom: 2px solid var(--border-dark);
+}
+
+.header-title {
+    color: var(--text-yellow);
+    font-size: 1.2em;
+    text-shadow: 2px 2px var(--border-dark);
+}
+
+.resource-display, .top-right-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resource-box, .toggle-icon {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-dark);
+    box-shadow: inset 0 0 0 1px var(--border-bevel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+}
+
+.resource-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+}
+
+.resource-box span {
+    color: var(--text-yellow);
+    font-size: 1.1em;
+}
+
+.toggle-icon {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+}
+
+.toggle-icon img {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0.9);
+}
+
+.toggle-icon.active {
+    box-shadow: inset 1px 1px 0 1px var(--border-dark), inset -1px -1px 0 1px var(--border-highlight);
+    background-color: #2c271f;
+}
+
+/* --- Main Content & Views --- */
+.osrs-game-content {
+    flex-grow: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-view {
+    display: none;
+    flex-grow: 1;
+    background-color: var(--bg-dark);
+    overflow: hidden;
+}
+
+.content-view.active {
+    display: flex;
+}
+
+/* --- Talent Tree View --- */
+#talent-tree-view {
+    position: relative;
+    overflow: hidden; /* Acts as a viewport for the canvas */
+    cursor: grab;
+}
+
+#talent-tree-view:active {
+    cursor: grabbing;
+}
+
+#tree-canvas {
+    position: relative; /* This is the draggable element */
+    width: 100%;
+    height: 100%;
+}
+
+.tree-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+
+.tree-connections {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.tree-connection-path {
+    stroke-width: 3px;
+    fill: none;
+    transition: stroke 0.4s ease;
+}
+
+.tree-connection-path.locked {
+    stroke: var(--line-locked);
+}
+
+.tree-connection-path.unlocked {
+    stroke: var(--line-unlocked);
+    filter: drop-shadow(0 0 3px var(--line-unlocked));
+}
+
+.node {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 2px solid var(--node-locked);
+    background-color: #2a2a2a;
+}
+
+.node-major { width: 60px; height: 60px; }
+.node-minor { width: 40px; height: 40px; }
+
+.node .node-icon {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    z-index: 1;
+}
+
+.node .node-icon, .node .overlay-icon {
+    filter: grayscale(1) brightness(0.6);
+}
+
+.node.available {
+    border-color: var(--node-available-glow);
+    box-shadow: 0 0 10px var(--node-available-glow);
+    cursor: pointer;
+}
+
+.node.available .node-icon, .node.available .overlay-icon {
+    filter: grayscale(0) brightness(1);
+}
+
+.node.unlocked {
+    border-color: var(--node-unlocked-glow);
+    box-shadow: 0 0 10px var(--node-unlocked-glow);
+}
+
+.node.unlocked .node-icon, .node.unlocked .overlay-icon {
+    filter: grayscale(0) brightness(1);
+}
+
+.overlay-icon {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    color: var(--text-light-grey);
+    text-shadow: 1px 1px 2px var(--border-dark);
+    z-index: 2;
+}
+
+.node.unlocked .overlay-icon {
+    color: var(--status-green);
+}
+
+.node.locked .tooltip {
+    display: none;
+}
+
+.tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    padding: 10px;
+    z-index: 10;
+    transition: opacity 0.2s, visibility 0.2s;
+    text-shadow: 1px 1px var(--border-dark);
+}
+
+.tooltip h4 {
+    color: var(--text-yellow);
+    margin: 0 0 5px 0;
+}
+
+.tooltip p {
+    margin: 0 0 8px 0;
+    color: var(--text-light-grey);
+    font-size: 0.9em;
+}
+
+.tooltip .cost {
+    color: var(--text-yellow);
+    font-weight: bold;
+}
+
+.node:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Skills & Quests Views --- */
+.grid-view, .list-view {
+    padding: 15px;
+    overflow-y: auto;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.view-title {
+    font-size: 1.1em;
+    color: var(--text-yellow);
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-bevel);
+    text-shadow: 1px 1px var(--border-dark);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 48px);
+    gap: 8px;
+    justify-content: center;
+}
+
+.skill-box {
+    width: 48px;
+    height: 48px;
+    position: relative;
+}
+
+.skill-box img {
+    width: 100%;
+    height: 100%;
+    filter: grayscale(1) brightness(0.5);
+}
+
+.skill-box .level {
+    display: none;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    color: var(--text-yellow);
+    text-shadow: 1px 1px var(--border-dark);
+}
+
+.skill-box.unlocked {
+    border-color: var(--node-unlocked-glow);
+}
+
+.skill-box.unlocked img {
+    filter: none;
+}
+
+.skill-box.unlocked .level {
+    display: block;
+}
+
+.skill-box .lock-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    color: var(--text-light-grey);
+    font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.skill-box .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-yellow);
+    text-align: center;
+    padding: 5px;
+    border-radius: 2px;
+    position: absolute;
+    z-index: 1;
+    bottom: 105%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.2s;
+    font-size: 10px;
+    width: max-content;
+    pointer-events: none;
+}
+
+.skill-box:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.quest-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.quest-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 5px;
+    border-bottom: 1px solid var(--border-bevel);
+}
+
+.quest-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 1px solid var(--border-dark);
+}
+.quest-status.not_started { background-color: var(--status-red); }
+.quest-status.in_progress { background-color: var(--status-yellow); }
+.quest-status.complete { background-color: var(--status-green); }
+
+/* --- Task List View --- */
+.task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-bevel);
+    gap: 10px;
+}
+
+.task-item.complete {
+    text-decoration: line-through;
+    color: var(--text-dark-grey);
+}
+
+.task-desc {
+    flex-grow: 1;
+}
+
+.task-reward {
+    color: var(--status-green);
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.claim-btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    color: var(--text-yellow);
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-dark);
+    box-shadow: inset 0 0 0 1px var(--border-bevel);
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+.claim-btn:hover:not(:disabled) {
+    background-color: #4a443b;
+}
+
+.claim-btn:disabled {
+    color: var(--text-dark-grey);
+    cursor: not-allowed;
+    background-color: #2a2a2a;
+}
+
+/* --- Log Panel --- */
+.log-panel {
+    height: 120px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-top: 2px solid var(--border-dark);
+    box-shadow: inset 0 1px 0 var(--border-bevel);
+    padding: 8px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+#log p {
+    margin: 2px 0;
+    line-height: 1.5;
+}
+
+#log .log-type {
+    font-weight: bold;
+}
+
+#log .log-unlock { color: var(--status-green); }
+#log .log-system { color: var(--status-red); }
+#log .log-info { color: var(--text-light-grey); }
+
