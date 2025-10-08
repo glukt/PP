@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Plugin - Node Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-panel: #362f26;
+            --border-dark: #000000;
+            --border-bevel: #5a5245;
+            --border-highlight: #988e80;
+            --text-yellow: #ffff00;
+            --text-orange: #ff981f;
+            --text-light-grey: #c8c8c8;
+            --line-locked: #4a4a4a;
+            --line-unlocked: #d4af37;
+            --node-selected: #5cb85c;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-dark);
+            color: var(--text-orange);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            font-size: 12px;
+            image-rendering: pixelated;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .osrs-panel {
+            background-color: var(--bg-panel);
+            border: 2px solid var(--border-dark);
+            box-shadow: inset 0 0 0 2px var(--border-bevel);
+        }
+
+        .editor-container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 40px);
+            gap: 20px;
+        }
+
+        .tree-panel {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+        .tree-panel:active {
+            cursor: grabbing;
+        }
+
+        .controls-panel {
+            width: 450px;
+            flex-shrink: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .controls-panel h2 {
+            color: var(--text-yellow);
+            font-size: 1.1em;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-bevel);
+            text-shadow: 1px 1px var(--border-dark);
+            margin: 0 0 10px 0;
+        }
+
+        #tree-canvas {
+            position: absolute;
+            width: 50000px;
+            height: 50000px;
+            transform-origin: top left;
+            background-image: radial-gradient(var(--border-bevel) 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        .tree-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        .node {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--line-unlocked);
+            background-color: #2a2a2a;
+            z-index: 1; 
+            cursor: grab;
+        }
+        .node.dragging {
+            cursor: grabbing;
+            border-color: #00aeff;
+            box-shadow: 0 0 15px #00aeff;
+            z-index: 1000;
+        }
+        .node.selected {
+            border-color: var(--node-selected);
+            box-shadow: 0 0 15px var(--node-selected);
+        }
+
+        .node-minor { width: 40px; height: 40px; }
+        .node-major { width: 60px; height: 60px; }
+        .node-epic { width: 80px; height: 80px; }
+        .node-legendary { width: 100px; height: 100px; }
+
+        .node .node-icon {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .tree-svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #tree-svg line {
+            stroke: var(--line-unlocked);
+            stroke-width: 3px;
+        }
+        
+        .info-box, .form-box {
+            background-color: var(--bg-dark);
+            padding: 10px;
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+        }
+        .info-box p, .form-box p {
+            margin: 0 0 8px 0;
+            color: var(--text-light-grey);
+        }
+        .info-box span {
+            color: var(--text-yellow);
+        }
+        
+        .action-btn, .osrs-input {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            color: var(--text-yellow);
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+            padding: 8px 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .action-btn {
+            cursor: pointer;
+            text-align: center;
+        }
+        .action-btn:hover {
+            background-color: #4a443b;
+        }
+
+        #output-data {
+            flex-grow: 1;
+            width: 100%;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+            color: var(--text-light-grey);
+            font-family: monospace;
+            font-size: 11px;
+            resize: none;
+            padding: 10px;
+        }
+        
+        #dep-editor, #edit-node-panel {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+            padding: 10px;
+            display: none; 
+            flex-direction: column;
+        }
+        #dep-editor h3 {
+            font-size: 10px;
+            color: var(--text-yellow);
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        #node-list-panel {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Let it take up space */
+            min-height: 150px; /* Give it a minimum height */
+        }
+        #node-list-panel h3 {
+            font-size: 10px;
+            color: var(--text-yellow);
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+        #node-search {
+            margin-bottom: 10px;
+        }
+        #node-category-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .category-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            color: var(--text-yellow);
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-bevel);
+            padding: 4px 6px;
+            cursor: pointer;
+        }
+        .category-btn.active {
+            background-color: var(--border-bevel);
+            color: var(--bg-dark);
+        }
+        .canned-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            color: var(--text-yellow);
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-bevel);
+            padding: 4px;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+        .canned-btn:hover {
+            background-color: #4a443b;
+        }
+
+        #node-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        #node-list li {
+            padding: 5px 8px;
+            cursor: pointer;
+            font-size: 10px;
+            border-bottom: 1px solid var(--border-bevel);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #node-list li:hover {
+            background-color: #4a443b;
+        }
+        #node-list li.selected {
+            background-color: var(--node-selected);
+            color: var(--bg-dark);
+        }
+
+        #icon-picker-panel {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-dark);
+            box-shadow: inset 0 0 0 1px var(--border-bevel);
+            padding: 10px;
+        }
+        #icon-picker-panel h3 {
+            font-size: 10px;
+            color: var(--text-yellow);
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+        #icon-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        #icon-pool img {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-bevel);
+            padding: 2px;
+        }
+        #icon-pool img:hover {
+            border-color: var(--text-yellow);
+        }
+
+        #dep-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #dep-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            color: var(--text-light-grey);
+            font-size: 10px;
+        }
+        #dep-list input {
+            margin-right: 8px;
+        }
+        
+        #selection-box {
+            position: absolute;
+            border: 1px dashed var(--text-yellow);
+            background-color: rgba(255, 255, 0, 0.2);
+            z-index: 2000;
+            pointer-events: none;
+            display: none;
+        }
+
+        .link-mode-active .node {
+            cursor: crosshair;
+        }
+        .link-mode-active .node.dimmed {
+            opacity: 0.5;
+        }
+        .link-mode-active .node:hover {
+            box-shadow: 0 0 15px var(--text-yellow);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="editor-container">
+        <div class="osrs-panel tree-panel" id="tree-panel">
+            <div id="tree-canvas">
+                <svg id="tree-svg" class="tree-svg-layer"></svg>
+                <div class="tree-container" id="tree-container"></div>
+            </div>
+            <div id="selection-box"></div>
+        </div>
+
+        <div class="osrs-panel controls-panel">
+            <h2>Node Editor</h2>
+            
+             <div class="form-box">
+                <div class="form-box" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <label for="snap-to-grid" style="color: var(--text-light-grey); font-size: 10px; flex-grow: 1;">Snap to Grid</label>
+                    <input type="checkbox" id="snap-to-grid" checked style="width: auto; height: auto;">
+                </div>
+                <input type="text" id="new-node-name" class="osrs-input" placeholder="New node name...">
+                <button class="action-btn" id="create-node-btn" style="margin-top: 10px;">Create New Node</button>
+            </div>
+
+            <div class="info-box">
+                <p>Selected: <span id="info-node-name">None</span></p>
+                <p>X: <span id="info-node-x">--</span>, Y: <span id="info-node-y">--</span></p>
+            </div>
+
+            <button class="action-btn" id="delete-node-btn" style="background-color: #8c3838; display: none; margin-top: 10px;">Delete Selected</button>
+            <button class="action-btn" id="link-mode-btn" style="display: none; margin-top: 10px;">Link/Unlink Children</button>
+            <button class="action-btn" id="unlink-all-btn" style="display: none; margin-top: 5px; background-color: #ac5f5f;">Unlink All Children</button>
+
+            <div id="edit-node-panel">
+                <input type="text" id="edit-node-name" class="osrs-input" placeholder="Rename node...">
+                <button class="action-btn" id="rename-node-btn" style="margin-top: 10px;">Rename Selected</button>
+
+                <textarea id="edit-node-desc" class="osrs-input" placeholder="Node description..." rows="3" style="margin-top: 15px;"></textarea>
+                <div id="canned-desc-buttons" style="display: flex; gap: 5px; margin-top: 5px;">
+                    <button class="canned-btn" data-template="Unlock the [NAME] skill.">Skill</button>
+                    <button class="canned-btn" data-template="Unlock the ability to wear [NAME].">Armour</button>
+                    <button class="canned-btn" data-template="Unlock the ability to wield [NAME].">Weapon</button>
+                </div>
+                <button class="action-btn" id="update-desc-btn" style="margin-top: 10px;">Update Description</button>
+                
+                <div id="resize-panel" style="margin-top: 15px;">
+                    <h4 style="font-size: 10px; color: var(--text-yellow); margin: 0 0 5px 0; text-align: center;">Resize Node</h4>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="canned-btn" data-size="minor">Minor</button>
+                        <button class="canned-btn" data-size="major">Major</button>
+                        <button class="canned-btn" data-size="epic">Epic</button>
+                        <button class="canned-btn" data-size="legendary">Legendary</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="icon-picker-panel" style="display: none;">
+                <h3>Change Icon</h3>
+                <div id="icon-pool"></div>
+            </div>
+
+            <div id="node-list-panel">
+                <h3>All Nodes</h3>
+                <input type="text" id="node-search" class="osrs-input" placeholder="Search nodes...">
+                <div id="node-category-filters"></div>
+                <ul id="node-list"></ul>
+            </div>
+
+            <button class="action-btn" id="generate-btn">Generate Output</button>
+            <textarea id="output-data" readonly placeholder="Click 'Generate Output' to see the updated TREE_DATA object here..."></textarea>
+            <button class="action-btn" id="copy-btn">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ICON_POOL = ['https://oldschool.runescape.wiki/images/Achievement_Diaries_icon.png', 'https://oldschool.runescape.wiki/images/thumb/Raids.png/120px-Raids.png?68e3d', 'https://oldschool.runescape.wiki/images/Combat_icon.png', 'https://oldschool.runescape.wiki/images/Agility_icon.png', 'https://oldschool.runescape.wiki/images/Holy_symbol.png', 'https://oldschool.runescape.wiki/images/Attack_icon.png', 'https://oldschool.runescape.wiki/images/Strength_icon.png', 'https://oldschool.runescape.wiki/images/Defence_icon.png', 'https://oldschool.runescape.wiki/images/Quest_point_icon.png', 'https://oldschool.runescape.wiki/images/Mining_icon.png', 'https://oldschool.runescape.wiki/images/Smithing_icon.png', 'https://oldschool.runescape.wiki/images/Slayer_icon.png', 'https://oldschool.runescape.wiki/images/Ranged_icon.png', 'https://oldschool.runescape.wiki/images/Thieving_icon.png', 'https://oldschool.runescape.wiki/images/Hunter_icon.png', 'https://oldschool.runescape.wiki/images/Woodcutting_icon.png', 'https://oldschool.runescape.wiki/images/Fletching_icon.png', 'https://oldschool.runescape.wiki/images/Firemaking_icon.png', 'https://oldschool.runescape.wiki/images/Fishing_icon.png', 'https://oldschool.runescape.wiki/images/Crafting_icon.png', 'https://oldschool.runescape.wiki/images/Magic_icon.png', 'https://oldschool.runescape.wiki/images/Herblore_icon.png', 'https://oldschool.runescape.wiki/images/Farming_icon.png', 'https://oldschool.runescape.wiki/images/Construction_icon.png', 'https://oldschool.runescape.wiki/images/Prayer_icon.png', 'https://oldschool.runescape.wiki/images/Cooking_icon.png', 'https://oldschool.runescape.wiki/images/Runecraft_icon.png', 'https://oldschool.runescape.wiki/images/Bank_icon.png', 'https://oldschool.runescape.wiki/images/Grand_Exchange_icon.png', 'https://oldschool.runescape.wiki/images/Coins_10000.png', 'https://oldschool.runescape.wiki/images/Tome_of_fire.png', 'https://oldschool.runescape.wiki/images/Clue_scroll_%28master%29.png', 'https://oldschool.runescape.wiki/images/Boss_icon.png', 'https://oldschool.runescape.wiki/images/Minigame_icon.png', 'https://oldschool.runescape.wiki/images/Bronze_pickaxe.png', 'https://oldschool.runescape.wiki/images/Bronze_axe.png', 'https://oldschool.runescape.wiki/images/Hammer.png', 'https://oldschool.runescape.wiki/images/Tinderbox.png', 'https://oldschool.runescape.wiki/images/Pestle_and_mortar.png', 'https://oldschool.runescape.wiki/images/Bones.png', 'https://oldschool.runescape.wiki/images/Super_attack%284%29.png', 'https://oldschool.runescape.wiki/images/Prayer_potion%284%29.png', 'https://oldschool.runescape.wiki/images/Air_rune.png', 'https://oldschool.runescape.wiki/images/Fire_rune.png', 'https://oldschool.runescape.wiki/images/Death_rune.png', 'https://oldschool.runescape.wiki/images/Dragon_scimitar.png', 'https://oldschool.runescape.wiki/images/Dragon_hunter_crossbow.png', 'https://oldschool.runescape.wiki/images/Abyssal_whip.png', 'https://oldschool.runescape.wiki/images/Bandos_chestplate.png', 'https://oldschool.runescape.wiki/images/Ancestral_robe_top.png', 'https://oldschool.runescape.wiki/images/Armadyl_chainskir.png', 'https://oldschool.runescape.wiki/images/Water_rune.png', 'https://oldschool.runescape.wiki/images/Earth_rune.png', 'https://oldschool.runescape.wiki/images/Mind_rune.png', 'https://oldschool.runescape.wiki/images/Body_rune.png', 'https://oldschool.runescape.wiki/images/Cosmic_rune.png', 'https://oldschool.runescape.wiki/images/Chaos_rune.png', 'https://oldschool.runescape.wiki/images/Nature_rune.png', 'https://oldschool.runescape.wiki/images/Law_rune.png', 'https://oldschool.runescape.wiki/images/Astral_rune.png', 'https://oldschool.runescape.wiki/images/Blood_rune.png', 'https://oldschool.runescape.wiki/images/Soul_rune.png', 'https://oldschool.runescape.wiki/images/Wrath_rune.png', 'https://oldschool.runescape.wiki/images/Mist_rune.png', 'https://oldschool.runescape.wiki/images/Dust_rune.png', 'https://oldschool.runescape.wiki/images/Mud_rune.png', 'https://oldschool.runescape.wiki/images/Smoke_rune.png', 'https://oldschool.runescape.wiki/images/Steam_rune.png', 'https://oldschool.runescape.wiki/images/Lava_rune.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Altar.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Bank.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Dungeon.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Fairy_ring.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Furnace.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_General_store.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Minigame.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Quest_start.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Spirit_tree.png', 'https://oldschool.runescape.wiki/images/Map_icon_-_Transportation.png'];
+        const MASTER_NODE_LIBRARY = {
+            // Skills
+            attack: { name: 'Attack', icon: 'https://oldschool.runescape.wiki/images/Attack_icon.png', category: 'Skills' },
+            strength: { name: 'Strength', icon: 'https://oldschool.runescape.wiki/images/Strength_icon.png', category: 'Skills' },
+            defence: { name: 'Defence', icon: 'https://oldschool.runescape.wiki/images/Defence_icon.png', category: 'Skills' },
+            ranged: { name: 'Ranged', icon: 'https://oldschool.runescape.wiki/images/Ranged_icon.png', category: 'Skills' },
+            prayer: { name: 'Prayer', icon: 'https://oldschool.runescape.wiki/images/Prayer_icon.png', category: 'Skills' },
+            magic: { name: 'Magic', icon: 'https://oldschool.runescape.wiki/images/Magic_icon.png', category: 'Skills' },
+            runecraft: { name: 'Runecraft', icon: 'https://oldschool.runescape.wiki/images/Runecraft_icon.png', category: 'Skills' },
+            construction: { name: 'Construction', icon: 'https://oldschool.runescape.wiki/images/Construction_icon.png', category: 'Skills' },
+            agility: { name: 'Agility', icon: 'https://oldschool.runescape.wiki/images/Agility_icon.png', category: 'Skills' },
+            herblore: { name: 'Herblore', icon: 'https://oldschool.runescape.wiki/images/Herblore_icon.png', category: 'Skills' },
+            thieving: { name: 'Thieving', icon: 'https://oldschool.runescape.wiki/images/Thieving_icon.png', category: 'Skills' },
+            crafting: { name: 'Crafting', icon: 'https://oldschool.runescape.wiki/images/Crafting_icon.png', category: 'Skills' },
+            fletching: { name: 'Fletching', icon: 'https://oldschool.runescape.wiki/images/Fletching_icon.png', category: 'Skills' },
+            slayer: { name: 'Slayer', icon: 'https://oldschool.runescape.wiki/images/Slayer_icon.png', category: 'Skills' },
+            hunter: { name: 'Hunter', icon: 'https://oldschool.runescape.wiki/images/Hunter_icon.png', category: 'Skills' },
+            mining: { name: 'Mining', icon: 'https://oldschool.runescape.wiki/images/Mining_icon.png', category: 'Skills' },
+            smithing: { name: 'Smithing', icon: 'https://oldschool.runescape.wiki/images/Smithing_icon.png', category: 'Skills' },
+            fishing: { name: 'Fishing', icon: 'https://oldschool.runescape.wiki/images/Fishing_icon.png', category: 'Skills' },
+            cooking: { name: 'Cooking', icon: 'https://oldschool.runescape.wiki/images/Cooking_icon.png', category: 'Skills' },
+            firemaking: { name: 'Firemaking', icon: 'https://oldschool.runescape.wiki/images/Firemaking_icon.png', category: 'Skills' },
+            woodcutting: { name: 'Woodcutting', icon: 'https://oldschool.runescape.wiki/images/Woodcutting_icon.png', category: 'Skills' },
+            farming: { name: 'Farming', icon: 'https://oldschool.runescape.wiki/images/Farming_icon.png', category: 'Skills' },
+
+            // Paths
+            path_might: { name: 'Path of Might', icon: 'https://oldschool.runescape.wiki/images/Combat_icon.png', category: 'Paths' },
+            path_dexterity: { name: 'Path of Dexterity', icon: 'https://oldschool.runescape.wiki/images/Agility_icon.png', category: 'Paths' },
+            path_wisdom: { name: 'Path of Wisdom', icon: 'https://oldschool.runescape.wiki/images/Holy_symbol.png', category: 'Paths' },
+
+            // Armour
+            bronze_armor: { name: 'Bronze Armor', icon: 'https://oldschool.runescape.wiki/images/Bronze_platebody.png', category: 'Armour' },
+            iron_armor: { name: 'Iron Armor', icon: 'https://oldschool.runescape.wiki/images/Iron_platebody.png', category: 'Armour' },
+            steel_armor: { name: 'Steel Armor', icon: 'https://oldschool.runescape.wiki/images/Steel_platebody.png', category: 'Armour' },
+            black_armor: { name: 'Black Armor', icon: 'https://oldschool.runescape.wiki/images/Black_platebody.png', category: 'Armour' },
+            mithril_armor: { name: 'Mithril Armor', icon: 'https://oldschool.runescape.wiki/images/Mithril_platebody.png', category: 'Armour' },
+            adamant_armor: { name: 'Adamant Armor', icon: 'https://oldschool.runescape.wiki/images/Adamant_platebody.png', category: 'Armour' },
+            rune_armor: { name: 'Rune Armor', icon: 'https://oldschool.runescape.wiki/images/Rune_platebody.png', category: 'Armour' },
+            oak_equip: { name: 'Oak Equipment', icon: 'https://oldschool.runescape.wiki/images/Oak_longbow.png', category: 'Armour' },
+            willow_equip: { name: 'Willow Equipment', icon: 'https://oldschool.runescape.wiki/images/Willow_longbow.png', category: 'Armour' },
+            maple_equip: { name: 'Maple Equipment', icon: 'https://oldschool.runescape.wiki/images/Maple_longbow.png', category: 'Armour' },
+
+            // Weapons
+            bronze_weapon: { name: 'Bronze Weapons', icon: 'https://oldschool.runescape.wiki/images/Bronze_sword.png', category: 'Weapons' },
+            iron_weapon: { name: 'Iron Weapons', icon: 'https://oldschool.runescape.wiki/images/Iron_sword.png', category: 'Weapons' },
+            steel_weapon: { name: 'Steel Weapons', icon: 'https://oldschool.runescape.wiki/images/Steel_sword.png', category: 'Weapons' },
+            black_weapon: { name: 'Black Weapons', icon: 'https://oldschool.runescape.wiki/images/Black_sword.png', category: 'Weapons' },
+            mithril_weapon: { name: 'Mithril Weapons', icon: 'https://oldschool.runescape.wiki/images/Mithril_sword.png', category: 'Weapons' },
+            adamant_weapon: { name: 'Adamant Weapons', icon: 'https://oldschool.runescape.wiki/images/Adamant_sword.png', category: 'Weapons' },
+            rune_weapon: { name: 'Rune Weapons', icon: 'https://oldschool.runescape.wiki/images/Rune_sword.png', category: 'Weapons' },
+
+            // Other
+            standard_spellbook: { name: 'Standard Spellbook', icon: 'https://oldschool.runescape.wiki/images/Standard_spellbook.png', category: 'Magic' },
+            magic_teleports: { name: 'Teleports', icon: 'https://oldschool.runescape.wiki/images/Lumbridge_Teleport_icon.png', category: 'Magic' },
+            high_alchemy: { name: 'High Alchemy', icon: 'https://oldschool.runescape.wiki/images/High_Alchemy.png', category: 'Magic' },
+            enchantment: { name: 'Enchantment', icon: 'https://oldschool.runescape.wiki/images/Enchant_level_3_jewellery.png', category: 'Magic' },
+
+            // Raids
+            chambers_of_xeric: { name: 'Chambers of Xeric', icon: 'https://oldschool.runescape.wiki/images/thumb/Raids.png/120px-Raids.png?68e3d', category: 'Raids' },
+            theatre_of_blood: { name: 'Theatre of Blood', icon: 'https://oldschool.runescape.wiki/images/thumb/Raids.png/120px-Raids.png?68e3d', category: 'Raids' },
+            tombs_of_amascut: { name: 'Tombs of Amascut', icon: 'https://oldschool.runescape.wiki/images/thumb/Raids.png/120px-Raids.png?68e3d', category: 'Raids' },
+        };
+
+        const QUEST_LIST = ["X Marks the Spot", "Witch's Potion", "Vampyre Slayer", "Shield of Arrav", "Sheep Shearer", "Rune Mysteries", "Romeo & Juliet", "The Restless Ghost", "Prince Ali Rescue", "Pirate's Treasure", "Misthalin Mystery", "The Knight's Sword", "Imp Catcher", "Goblin Diplomacy", "Ernest the Chicken", "Dragon Slayer I", "Doric's Quest", "Demon Slayer", "The Corsair Curse", "Cook's Assistant", "Black Knights' Fortress", "Below Ice Mountain", "Druidic Ritual", "Lost City", "Witch's House", "Merlin's Crystal", "Heroes' Quest", "Scorpion Catcher", "Family Crest", "Fishing Contest", "Tribal Totem", "Monk's Friend", "Temple of Ikov", "Clock Tower", "Holy Grail", "Tree Gnome Village", "Fight Arena", "Hazeel Cult", "Sheep Herder", "Plague City", "Sea Slug", "Waterfall Quest", "Jungle Potion", "The Grand Tree", "Underground Pass", "Observatory Quest", "The Tourist Trap", "Watchtower", "Dwarf Cannon", "Murder Mystery", "The Dig Site", "Gertrude's Cat", "Legends' Quest", "Death Plateau", "Eadgar's Ruse", "Big Chompy Bird Hunting", "Elemental Workshop I", "Nature Spirit", "Priest in Peril", "Regicide", "Tai Bwo Wannai Trio", "Troll Stronghold", "Shades of Mort'ton", "The Fremennik Trials", "Horror from the Deep", "Throne of Miscellania", "Monkey Madness I", "Haunted Mine", "Troll Romance", "In Search of the Myreque", "Creature of Fenkenstrain", "Roving Elves", "Ghosts Ahoy", "One Small Favour", "Mountain Daughter", "Between a Rock...", "The Feud", "The Golem", "Desert Treasure I", "Icthlarin's Little Helper", "Tears of Guthix", "The Lost Tribe", "The Giant Dwarf", "Recruitment Drive", "Mourning's End Part I", "Forgettable Tale...", "Garden of Tranquillity", "A Tail of Two Cats", "Wanted!", "Mourning's End Part II", "Rum Deal", "Shadow of the Storm", "Making History", "Ratcatchers", "Spirits of the Elid", "Devious Minds", "The Hand in the Sand", "Enakhra's Lament", "Cabin Fever", "Fairytale I - Growing Pains", "Recipe for Disaster", "In Aid of the Myreque", "A Soul's Bane", "Rag and Bone Man I", "Swan Song", "Royal Trouble", "Death to the Dorgeshuun", "Fairytale II - Cure a Queen", "Lunar Diplomacy", "The Eyes of Glouphrie", "Darkness of Hallowvale", "The Slug Menace", "Elemental Workshop II", "My Arm's Big Adventure", "Enlightened Journey", "Eagles' Peak", "Animal Magnetism", "Contact!", "Cold War", "The Fremennik Isles", "The Great Brain Robbery", "What Lies Below", "Olaf's Quest", "Another Slice of H.A.M.", "Dream Mentor", "Grim Tales", "King's Ransom", "Shilo Village", "Biohazard", "Tower of Life", "Rag and Bone Man II", "Land of the Goblins", "While Guthix Sleeps", "Zogre Flesh Eaters", "Monkey Madness II", "Client of Kourend", "The Queen of Thieves", "Bone Voyage", "Dragon Slayer II", "The Depths of Despair", "Recipe for Disaster/Another Cook's Quest", "Recipe for Disaster/Freeing the Goblin generals", "Recipe for Disaster/Freeing the Mountain Dwarf", "Recipe for Disaster/Freeing Evil Dave", "Recipe for Disaster/Freeing Pirate Pete", "Recipe for Disaster/Freeing the Lumbridge Guide", "Recipe for Disaster/Freeing Sir Amik Varze", "Recipe for Disaster/Freeing King Awowogei", "Recipe for Disaster/Freeing Skrach Uglogwee", "A Taste of Hope", "Tale of the Righteous", "Making Friends with My Arm", "Recipe for Disaster/Defeating the Culinaromancer", "Song of the Elves", "The Ascent of Arceuus", "The Forsaken Tower", "The Fremennik Exiles", "The Curse of Arrav", "Defender of Varrock", "Sins of the Father", "A Kingdom Divided", "A Porcine of Interest", "Getting Ahead", "A Night at the Theatre", "Beneath Cursed Sands", "Temple of the Eye", "The Path of Glouphrie", "Sleeping Giants", "The Garden of Death", "Desert Treasure II - The Fallen Empire", "Secrets of the North", "Children of the Sun", "Perilous Moons", "The Ribbiting Tale of a Lily Pad Labour Dispute", "Twilight's Promise", "At First Light", "The Heart of Darkness", "Death on the Isle", "Meat and Greet", "Ethically Acquired Antiquities", "The Final Dawn", "Shadows of Custodia", "Scrambled!"];
+        QUEST_LIST.forEach(q => {
+            const id = 'quest_' + q.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+            if (!MASTER_NODE_LIBRARY[id]) {
+                MASTER_NODE_LIBRARY[id] = { name: q, icon: 'https://oldschool.runescape.wiki/images/Quest_point_icon.png', category: 'Quests' };
+            }
+        });
+
+        const TREE_DATA = {
+            genesis: { type: 'major', name: 'Genesis', desc: 'The origin point of your journey.', cost: 0, status: 'unlocked', deps: [], pos: { x: '50%', y: '50%' }, icon: 'https://oldschool.runescape.wiki/images/Achievement_Diaries_icon.png' }
+        };
+        const treePanel = document.getElementById('tree-panel');
+        const treeCanvas = document.getElementById('tree-canvas');
+        const treeContainer = document.getElementById('tree-container');
+        const treeSvg = document.getElementById('tree-svg');
+        const generateBtn = document.getElementById('generate-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const outputData = document.getElementById('output-data');
+        const infoNodeName = document.getElementById('info-node-name');
+        const infoNodeX = document.getElementById('info-node-x');
+        const infoNodeY = document.getElementById('info-node-y');
+        const nodeList = document.getElementById('node-list');
+        const createNodeBtn = document.getElementById('create-node-btn');
+        const newNodeNameInput = document.getElementById('new-node-name');
+        const editNodePanel = document.getElementById('edit-node-panel');
+        const editNodeNameInput = document.getElementById('edit-node-name');
+        const renameNodeBtn = document.getElementById('rename-node-btn');
+        const editNodeDesc = document.getElementById('edit-node-desc');
+        const cannedDescButtons = document.getElementById('canned-desc-buttons');
+        const updateDescBtn = document.getElementById('update-desc-btn');
+        const resizePanel = document.getElementById('resize-panel');
+        const selectionBox = document.getElementById('selection-box');
+        const snapToGridCheckbox = document.getElementById('snap-to-grid');
+        const deleteNodeBtn = document.getElementById('delete-node-btn');
+        const linkModeBtn = document.getElementById('link-mode-btn');
+        const iconPickerPanel = document.getElementById('icon-picker-panel');
+        const iconPool = document.getElementById('icon-pool');
+        const unlinkAllBtn = document.getElementById('unlink-all-btn');
+        const nodeSearchInput = document.getElementById('node-search');
+        const nodeCategoryFilters = document.getElementById('node-category-filters');
+
+        let activeCategory = 'All';
+
+        let isDragging = false;
+        let isInLinkMode = false;
+        let linkModeParent = null;
+        let isPanning = false;
+        let hasPanned = false;
+        let isSelecting = false;
+        let activeNodeEl = null;
+        
+        let selectedNodeIds = new Set();
+        let initialMultiNodePositions = new Map();
+
+        let startX, startY;
+        let canvasX = 0, canvasY = 0;
+        let initialCanvasX = 0, initialCanvasY = 0;
+        let scale = 0.5;
+        const scaleFactor = 0.1;
+        const minScale = 0.2;
+        const maxScale = 2.5;
+
+        function applyTransform() {
+            treeCanvas.style.transform = `translate(${canvasX}px, ${canvasY}px) scale(${scale})`;
+        }
+
+        function renderLines() {
+            treeSvg.innerHTML = '';
+            Object.keys(TREE_DATA).forEach(id => {
+                const node = TREE_DATA[id];
+                if (node.deps && node.deps.length > 0) {
+                    node.deps.forEach(depId => {
+                        const parentNode = TREE_DATA[depId];
+                        if (!parentNode) return;
+
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', parentNode.pos.x);
+                        line.setAttribute('y1', parentNode.pos.y);
+                        line.setAttribute('x2', node.pos.x);
+                        line.setAttribute('y2', node.pos.y);
+                        treeSvg.appendChild(line);
+                    });
+                }
+            });
+
+        }
+
+        function populateCategoryFilters() {
+            const categories = ['All', ...new Set(Object.values(MASTER_NODE_LIBRARY).map(n => n.category || 'Other'))].sort();
+            nodeCategoryFilters.innerHTML = '';
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'category-btn';
+                btn.textContent = category;
+                if (category === activeCategory) {
+                    btn.classList.add('active');
+                }
+                btn.addEventListener('click', () => {
+                    activeCategory = category;
+                    // Update active class on buttons
+                    document.querySelectorAll('.category-btn.active').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderNodeList();
+                });
+                nodeCategoryFilters.appendChild(btn);
+            });
+        }
+
+        function renderNodeList() {
+            const searchTerm = nodeSearchInput.value.toLowerCase();
+            const nodesOnCanvas = new Map(Object.entries(TREE_DATA).map(([id, node]) => [node.name, id]));
+            const masterList = Object.entries(MASTER_NODE_LIBRARY).sort(([, a], [, b]) => a.name.localeCompare(b.name));
+            
+            // Filter based on category and search
+            const filteredList = masterList.filter(([, node]) => {
+                const matchesCategory = activeCategory === 'All' || node.category === activeCategory;
+                const matchesSearch = node.name.toLowerCase().includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
+
+            nodeList.innerHTML = '';
+            filteredList.forEach(([id, masterNode]) => {
+                const li = document.createElement('li');
+                const existingNodeId = nodesOnCanvas.get(masterNode.name);
+
+                if (existingNodeId) {
+                    li.textContent = masterNode.name;
+                    li.dataset.nodeId = existingNodeId;
+                    li.style.color = 'var(--text-light-grey)';
+                    if (selectedNodeIds.has(existingNodeId)) {
+                        li.classList.add('selected');
+                    }
+                    li.addEventListener('click', () => {
+                        selectedNodeIds.clear();
+                        selectedNodeIds.add(existingNodeId);
+                        updateSelectionUI();
+                    });
+                } else {
+                    li.innerHTML = `<span>${masterNode.name}</span><span style="color: var(--status-green);">[+]</span>`;
+                    li.style.color = 'var(--text-dark-grey)';
+                    li.title = 'Click to add to canvas';
+                    li.addEventListener('click', () => {
+                        let newId = id;
+                        let counter = 1;
+                        while (TREE_DATA[newId]) {
+                            newId = `${id}_${counter++}`;
+                        }
+
+                        const canvasWidth = treeCanvas.offsetWidth;
+                        const canvasHeight = treeCanvas.offsetHeight;
+                        const centerX = ((-canvasX + treePanel.clientWidth / 2) / scale);
+                        const centerY = ((-canvasY + treePanel.clientHeight / 2) / scale);
+                        const xPercent = (centerX / canvasWidth * 100).toFixed(2);
+                        const yPercent = (centerY / canvasHeight * 100).toFixed(2);
+
+                        TREE_DATA[newId] = {
+                            type: 'minor', name: masterNode.name, desc: `The '${masterNode.name}' node.`, cost: 1, status: 'locked',
+                            deps: [], pos: { x: `${xPercent}%`, y: `${yPercent}%` },
+                            icon: masterNode.icon
+                        };
+                        renderNodes();
+                        renderNodeList();
+                        selectedNodeIds.clear();
+                        selectedNodeIds.add(newId);
+                        updateSelectionUI();
+                    });
+                }
+                nodeList.appendChild(li);
+            });
+        }
+
+        nodeSearchInput.addEventListener('input', renderNodeList);
+
+        function populateIconPicker() {
+            iconPool.innerHTML = '';
+            ICON_POOL.forEach(iconUrl => {
+                const img = document.createElement('img');
+                img.src = iconUrl;
+                img.addEventListener('click', () => {
+                    if (selectedNodeIds.size !== 1) return;
+                    const [nodeId] = selectedNodeIds;
+                    TREE_DATA[nodeId].icon = iconUrl;
+                    updateNodeIcon(nodeId, iconUrl);
+                });
+                iconPool.appendChild(img);
+            });
+        }
+
+        function updateNodeIcon(nodeId, iconUrl) {
+            const nodeEl = document.getElementById(nodeId);
+            if (nodeEl) {
+                const imgEl = nodeEl.querySelector('.node-icon');
+                if (imgEl) {
+                    imgEl.src = iconUrl;
+                }
+            }
+        }
+
+        function updateSelectionUI() {
+            // Update selection on canvas
+            document.querySelectorAll('.node.selected').forEach(n => n.classList.remove('selected'));
+            selectedNodeIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('selected');
+            });
+
+            // Update selection in the node list
+            document.querySelectorAll('#node-list li').forEach(li => {
+                if (selectedNodeIds.has(li.dataset.nodeId)) {
+                    li.classList.add('selected');
+                } else {
+                    li.classList.remove('selected');
+                }
+            });
+
+            // Update panels
+            deleteNodeBtn.style.display = selectedNodeIds.size > 0 ? 'block' : 'none';
+            linkModeBtn.style.display = selectedNodeIds.size === 1 ? 'block' : 'none';
+
+            if (selectedNodeIds.size === 1) {
+                const [nodeId] = selectedNodeIds;
+                const nodeData = TREE_DATA[nodeId];
+                infoNodeName.textContent = nodeData.name;
+                infoNodeX.textContent = nodeData.pos.x;
+                infoNodeY.textContent = nodeData.pos.y;
+                editNodePanel.style.display = 'flex';
+                iconPickerPanel.style.display = 'block';
+                editNodeNameInput.value = nodeData.name;
+                editNodeDesc.value = nodeData.desc || '';
+            } else {
+                infoNodeName.textContent = selectedNodeIds.size > 1 ? `${selectedNodeIds.size} nodes selected` : 'None';
+                infoNodeX.textContent = '--';
+                infoNodeY.textContent = '--';
+                editNodePanel.style.display = 'none';
+                iconPickerPanel.style.display = 'none';
+            }
+        }
+
+        function renderNodes() {
+            treeContainer.innerHTML = '';
+            Object.keys(TREE_DATA).forEach(id => {
+                const node = TREE_DATA[id];
+                const nodeEl = document.createElement('div');
+                nodeEl.id = id;
+                nodeEl.className = `node node-${node.type}`;
+                nodeEl.style.left = node.pos.x;
+                nodeEl.style.top = node.pos.y;
+                nodeEl.style.transform = 'translate(-50%, -50%)';
+                nodeEl.innerHTML = `<img src="${node.icon}" class="node-icon" alt="${node.name}">`;
+                
+                nodeEl.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    isDragging = true;
+                    activeNodeEl = e.currentTarget;
+                    
+                    if (e.shiftKey) {
+                        if (selectedNodeIds.has(id)) {
+                            selectedNodeIds.delete(id);
+                        } else {
+                            selectedNodeIds.add(id);
+                        }
+                    } else if (!selectedNodeIds.has(id)) {
+                        selectedNodeIds.clear();
+                        selectedNodeIds.add(id);
+                    }
+                    updateSelectionUI();
+
+                    initialMultiNodePositions.clear();
+                    selectedNodeIds.forEach(selectedId => {
+                         const el = document.getElementById(selectedId);
+                         initialMultiNodePositions.set(selectedId, {
+                            left: (parseFloat(el.style.left) / 100) * treeCanvas.offsetWidth,
+                            top: (parseFloat(el.style.top) / 100) * treeCanvas.offsetHeight
+                         });
+                    });
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                });
+                treeContainer.appendChild(nodeEl);
+            });
+            updateSelectionUI();
+        }
+        
+        treePanel.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.node')) return;
+
+            if (isInLinkMode) {
+                exitLinkMode();
+                return;
+            }
+
+            if (e.shiftKey) {
+                isSelecting = true;
+                isPanning = false;
+                selectedNodeIds.clear();
+                updateSelectionUI();
+
+                const rect = treePanel.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                selectionBox.style.left = `${startX}px`;
+                selectionBox.style.top = `${startY}px`;
+                selectionBox.style.width = '0px';
+                selectionBox.style.height = '0px';
+                selectionBox.style.display = 'block';
+            } else {
+                isPanning = true;
+                hasPanned = false;
+                isSelecting = false;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialCanvasX = canvasX;
+                initialCanvasY = canvasY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    hasPanned = true;
+                }
+                 e.preventDefault();
+                canvasX = initialCanvasX + dx;
+                canvasY = initialCanvasY + dy;
+                applyTransform();
+            } else if (isSelecting) {
+                e.preventDefault();
+                const rect = treePanel.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+
+                const left = Math.min(startX, currentX);
+                const top = Math.min(startY, currentY);
+                const width = Math.abs(startX - currentX);
+                const height = Math.abs(startY - currentY);
+
+                selectionBox.style.left = `${left}px`;
+                selectionBox.style.top = `${top}px`;
+                selectionBox.style.width = `${width}px`;
+                selectionBox.style.height = `${height}px`;
+
+                const selectionRect = selectionBox.getBoundingClientRect();
+                document.querySelectorAll('.node').forEach(nodeEl => {
+                    const nodeRect = nodeEl.getBoundingClientRect();
+                    if (
+                        nodeRect.left < selectionRect.right &&
+                        nodeRect.right > selectionRect.left &&
+                        nodeRect.top < selectionRect.bottom &&
+                        nodeRect.bottom > selectionRect.top
+                    ) {
+                        selectedNodeIds.add(nodeEl.id);
+                    } else if (!e.shiftKey) {
+                         selectedNodeIds.delete(nodeEl.id);
+                    }
+                });
+                updateSelectionUI();
+            }
+            else if (isDragging && !isInLinkMode) {
+                e.preventDefault();
+                const dx = (e.clientX - startX) / scale;
+                const dy = (e.clientY - startY) / scale;
+                const gridSize = 25;
+
+                selectedNodeIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    const initialPos = initialMultiNodePositions.get(id);
+                    if (!el || !initialPos) return;
+
+                    let newLeft = initialPos.left + dx;
+                    let newTop = initialPos.top + dy;
+
+                    if (snapToGridCheckbox.checked) {
+                        newLeft = Math.round(newLeft / gridSize) * gridSize;
+                        newTop = Math.round(newTop / gridSize) * gridSize;
+                    }
+                    
+                    newLeft = Math.max(0, Math.min(treeCanvas.offsetWidth, newLeft));
+                    newTop = Math.max(0, Math.min(treeCanvas.offsetHeight, newTop));
+
+                    const xPercent = (newLeft / treeCanvas.offsetWidth * 100).toFixed(2);
+                    const yPercent = (newTop / treeCanvas.offsetHeight * 100).toFixed(2);
+                    
+                    el.style.left = `${xPercent}%`;
+                    el.style.top = `${yPercent}%`;
+                    TREE_DATA[id].pos.x = `${xPercent}%`;
+                    TREE_DATA[id].pos.y = `${yPercent}%`;
+                });
+                
+                if (selectedNodeIds.size === 1) {
+                    const [nodeId] = selectedNodeIds;
+                    infoNodeX.textContent = TREE_DATA[nodeId].pos.x;
+                    infoNodeY.textContent = TREE_DATA[nodeId].pos.y;
+                }
+                renderLines();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isPanning && !hasPanned) {
+                selectedNodeIds.clear();
+                updateSelectionUI();
+            }
+
+            isDragging = false;
+            isPanning = false;
+            hasPanned = false;
+            isSelecting = false;
+            selectionBox.style.display = 'none';
+        });
+
+        treePanel.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = treePanel.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const delta = e.deltaY * -0.01;
+            const newScale = Math.min(Math.max(minScale, scale + delta * scaleFactor), maxScale);
+            if (newScale !== scale) {
+                const scaleChange = newScale / scale;
+                canvasX = mouseX - (mouseX - canvasX) * scaleChange;
+                canvasY = mouseY - (mouseY - canvasY) * scaleChange;
+                scale = newScale;
+                applyTransform();
+            }
+        });
+        
+        createNodeBtn.addEventListener('click', () => {
+            const name = newNodeNameInput.value.trim();
+            if (!name) {
+                newNodeNameInput.style.boxShadow = 'inset 0 0 0 2px red';
+                return;
+            }
+            newNodeNameInput.style.boxShadow = 'inset 0 0 0 1px var(--border-bevel)';
+            let baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+            let newId = baseId;
+            let counter = 1;
+            while (TREE_DATA[newId]) {
+                newId = `${baseId}_${counter++}`;
+            }
+            
+            const canvasWidth = treeCanvas.offsetWidth;
+            const canvasHeight = treeCanvas.offsetHeight;
+            const gridSize = 25;
+            let centerX = ((-canvasX + treePanel.clientWidth / 2) / scale);
+            let centerY = ((-canvasY + treePanel.clientHeight / 2) / scale);
+
+            if (snapToGridCheckbox.checked) {
+                centerX = Math.round(centerX / gridSize) * gridSize;
+                centerY = Math.round(centerY / gridSize) * gridSize;
+            }
+
+            const xPercent = (centerX / canvasWidth * 100).toFixed(2);
+            const yPercent = (centerY / canvasHeight * 100).toFixed(2);
+
+            TREE_DATA[newId] = {
+                type: 'minor', name: name, desc: 'A new node.', cost: 1, status: 'locked',
+                deps: [], pos: { x: `${xPercent}%`, y: `${yPercent}%` },
+                icon: 'https://oldschool.runescape.wiki/images/Quest_point_icon.png'
+            };
+            renderNodes();
+            selectedNodeIds.clear();
+            selectedNodeIds.add(newId);
+            updateSelectionUI();
+            renderNodeList();
+            newNodeNameInput.value = '';
+        });
+
+        renameNodeBtn.addEventListener('click', () => {
+            if (selectedNodeIds.size !== 1) return;
+            const [nodeId] = selectedNodeIds;
+            const newName = editNodeNameInput.value.trim();
+            if (newName && newName !== TREE_DATA[nodeId].name) {
+                TREE_DATA[nodeId].name = newName;
+                infoNodeName.textContent = newName;
+                renderNodeList();
+            }
+        });
+
+        updateDescBtn.addEventListener('click', () => {
+            if (selectedNodeIds.size !== 1) return;
+            const [nodeId] = selectedNodeIds;
+            TREE_DATA[nodeId].desc = editNodeDesc.value;
+            // Maybe add a small visual confirmation later
+        });
+
+        cannedDescButtons.addEventListener('click', (e) => {
+            if (e.target.classList.contains('canned-btn')) {
+                if (selectedNodeIds.size !== 1) return;
+                const [nodeId] = selectedNodeIds;
+                const template = e.target.dataset.template;
+                const nodeName = TREE_DATA[nodeId].name;
+                editNodeDesc.value = template.replace('[NAME]', nodeName);
+            }
+        });
+
+        function updateNodeType(nodeId, newType) {
+            const nodeEl = document.getElementById(nodeId);
+            if (nodeEl) {
+                nodeEl.classList.remove('node-minor', 'node-major', 'node-epic', 'node-legendary');
+                nodeEl.classList.add(`node-${newType}`);
+            }
+        }
+
+        resizePanel.addEventListener('click', (e) => {
+            if (e.target.dataset.size) {
+                if (selectedNodeIds.size !== 1) return;
+                const [nodeId] = selectedNodeIds;
+                const newSize = e.target.dataset.size;
+                TREE_DATA[nodeId].type = newSize;
+                updateNodeType(nodeId, newSize);
+            }
+        });
+
+        deleteNodeBtn.addEventListener('click', () => {
+            if (selectedNodeIds.size === 0) return;
+            if (confirm(`Are you sure you want to delete ${selectedNodeIds.size} node(s)? This cannot be undone.`)) {
+                selectedNodeIds.forEach(nodeId => {
+                    if (nodeId === 'genesis') {
+                        alert("Cannot delete the Genesis node.");
+                        return;
+                    };
+
+                    delete TREE_DATA[nodeId];
+                    
+                    Object.keys(TREE_DATA).forEach(otherId => {
+                        const otherNode = TREE_DATA[otherId];
+                        if (otherNode.deps) {
+                            const index = otherNode.deps.indexOf(nodeId);
+                            if (index > -1) {
+                                otherNode.deps.splice(index, 1);
+                            }
+                        }
+                    });
+                });
+                selectedNodeIds.clear();
+                renderNodes();
+                renderLines();
+                renderNodeList();
+                updateSelectionUI();
+            }
+        });
+
+        function linkModeClickHandler(e) {
+            e.stopPropagation();
+
+            const clickedId = e.currentTarget.id;
+            if (clickedId === linkModeParent) return;
+
+            const childNode = TREE_DATA[clickedId];
+            if (!childNode) return;
+
+            const depIndex = childNode.deps.indexOf(linkModeParent);
+
+            if (depIndex > -1) {
+                childNode.deps.splice(depIndex, 1);
+            } else {
+                childNode.deps.push(linkModeParent);
+            }
+            renderLines();
+        }
+
+        function exitLinkMode() {
+            if (!isInLinkMode) return;
+            isInLinkMode = false;
+            
+            document.body.classList.remove('link-mode-active');
+            document.querySelectorAll('.node').forEach(el => {
+                el.classList.remove('dimmed');
+                el.removeEventListener('click', linkModeClickHandler);
+            });
+
+            linkModeBtn.textContent = 'Link/Unlink Children';
+            linkModeBtn.style.backgroundColor = '';
+            unlinkAllBtn.style.display = 'none';
+            linkModeParent = null;
+
+            if(selectedNodeIds.size !== 1) {
+                linkModeBtn.style.display = 'none';
+            }
+        }
+
+        linkModeBtn.addEventListener('click', () => {
+            if (isInLinkMode) {
+                exitLinkMode();
+                return;
+            }
+
+            if (selectedNodeIds.size === 1) {
+                isInLinkMode = true;
+                [linkModeParent] = selectedNodeIds;
+                
+                document.body.classList.add('link-mode-active');
+                document.querySelectorAll('.node').forEach(el => {
+                    if (el.id !== linkModeParent) {
+                        el.classList.add('dimmed');
+                    }
+                    el.addEventListener('click', linkModeClickHandler);
+                });
+
+                linkModeBtn.textContent = 'Finish Linking';
+                linkModeBtn.style.backgroundColor = '#5cb85c';
+                unlinkAllBtn.style.display = 'block';
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isInLinkMode) {
+                exitLinkMode();
+            }
+        });
+
+        unlinkAllBtn.addEventListener('click', () => {
+            if (!isInLinkMode || !linkModeParent) return;
+
+            if (confirm(`Are you sure you want to unlink all children from "${TREE_DATA[linkModeParent].name}"?`)) {
+                Object.keys(TREE_DATA).forEach(id => {
+                    const node = TREE_DATA[id];
+                    if (node.deps) {
+                        const index = node.deps.indexOf(linkModeParent);
+                        if (index > -1) {
+                            node.deps.splice(index, 1);
+                        }
+                    }
+                });
+                renderLines();
+            }
+        });
+
+        generateBtn.addEventListener('click', () => {
+            let outputString = JSON.stringify(TREE_DATA, null, 4);
+            // Use a regex to remove quotes from object keys for cleaner JS object literal format
+            outputString = outputString.replace(/"([^"]+)":/g, '$1:');
+            
+            const instructions = `
+/******************************************************************
+ * * IMPORTANT INSTRUCTIONS:
+ * * 1. Click 'Copy to Clipboard'.
+ * 2. Open your main 'script.js' file.
+ * 3. Find the existing 'const TREE_DATA = { ... };' object.
+ * 4. Delete that entire object, from 'const TREE_DATA' 
+ * down to its closing semicolon ';'.
+ * 5. Paste this entire copied block in its place.
+ * * This will update your node positions, names, and links 
+ * without breaking the rest of your application's code.
+ * ******************************************************************/
+`;
+            
+            outputData.value = `${instructions}\nconst TREE_DATA = ${outputString};`;
+            outputData.scrollTop = 0;
+        });
+
+        copyBtn.addEventListener('click', () => {
+            outputData.select();
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => copyBtn.textContent = 'Copy to Clipboard', 1500);
+        });
+
+        const panelRect = treePanel.getBoundingClientRect();
+        const canvasSize = 50000;
+        canvasX = (panelRect.width / 2) - (canvasSize * 0.5 * scale);
+        canvasY = (panelRect.height / 2) - (canvasSize * 0.5 * scale);
+
+        renderNodes();
+        renderLines();
+        renderNodeList();
+        populateIconPicker();
+        populateCategoryFilters();
+        applyTransform();
+    });
+    </script>
+</body>
+</html>
+
