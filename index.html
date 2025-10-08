@@ -39,6 +39,10 @@
         </header>
 
         <main class="osrs-game-content">
+            <div id="load-tree-overlay">
+                <button id="load-tree-btn" class="action-btn">Load Skill Tree File</button>
+                <input type="file" id="tree-file-loader" style="display: none;" accept=".json">
+            </div>
             <div id="talent-tree-view" class="content-view active">
                 <div id="tree-canvas">
                     <svg id="tree-svg" class="tree-svg-layer"></svg>
