@@ -1,162 +1,109 @@
 Project Specification: Path of the Prodigy
 
-Version: 1.0
-Date: October 6, 2025
+Version: 1.1
+Date: October 7, 2025
+
 1. Overview
 
-"Path of the Prodigy" is a web-based companion application designed to guide a unique "snowflake" gameplay style for the MMORPG Old School RuneScape (OSRS). Inspired by community-created account restrictions like Tileman and Bronzeman, this project provides a structured, engaging, and novel progression path.
+"Path of the Prodigy" is a web-based companion application designed to guide a unique "snowflake" gameplay style for the MMORPG Old School RuneScape (OSRS). Inspired by community-created account restrictions, this project provides a structured, engaging, and novel progression path.
 
-The core of the project is an interactive talent tree, similar in concept to the one in Path of Exile. Players start with only the most basic in-game abilities and must use the web application to spend "Prodigy Points" (PP) to unlock every other skill, piece of equipment, minigame, and significant ability. This turns account progression into a strategic, choice-driven experience managed entirely through the web interface.
-2. Core Concept
+The core of the project is an interactive talent tree, created and curated via the **Tree Editor** utility. Players interact with the main application to spend "Prodigy Points" (PP) to unlock skills, equipment, minigames, and abilities defined in the talent tree. This turns account progression into a strategic, choice-driven experience.
+
+This document specifies two distinct components:
+- The main **Path of the Prodigy Application** (`index.html`), the player-facing progression tracker.
+- The **Tree Editor** (`TreeEditor.html`), a standalone authoring tool used to create and modify the talent tree itself.
+
+2. Core Concept (Main Application)
 
 The player's character is a "Prodigy"—an individual with immense potential but no practical knowledge. After the tutorial, their ability to interact with the game world is severely limited.
 
 The gameplay loop is as follows:
 
-    Earn Prodigy Points (PP): The player earns PP by completing in-game tasks, quests, or challenges. (The specific mechanism for task generation is a future consideration, but for now, PP is the central currency).
-
-    Spend Points: The player interacts with the "Path of the Prodigy" web application to spend their earned PP on a vast talent tree.
-
-    Unlock Abilities: Spending PP unlocks a node on the tree, which grants the player explicit permission to perform a new action in-game (e.g., use the Mining skill, wear Bronze armor, enter a specific guild).
-
-    Progress: The player uses their newly unlocked abilities to tackle harder challenges, earn more PP, and unlock further nodes on the tree.
+1.  **Earn Prodigy Points (PP):** The player earns PP by completing in-game tasks, quests, or challenges.
+2.  **Spend Points:** The player interacts with the "Path of the Prodigy" web application to spend their earned PP on the talent tree.
+3.  **Unlock Abilities:** Spending PP unlocks a node on the tree, granting the player explicit permission to perform a new action in-game (e.g., use the Mining skill, wear Bronze armor).
+4.  **Progress:** The player uses their newly unlocked abilities to tackle harder challenges, earn more PP, and unlock further nodes.
 
 This system makes the web application the central "rule keeper" and progress tracker for the account.
-3. Key Features & Functionality
+
+3. Key Features & Functionality (Main Application)
 
 The application is a single, unified interface designed to replicate the aesthetic of a polished OSRS game panel.
-3.1 Main UI Frame
 
-    The entire application is contained within a single, fixed-size panel styled after the OSRS UI.
+3.1. Main UI Frame & Header
+- A fixed-size panel styled after the OSRS UI.
+- A header bar displays current PP and navigation toggles for different views.
 
-    Styling: Features a textured brown background, a 2px black outer border, and a 2px golden-brown inner bevel, as per the reference images.
+3.2. Main Content Views
+- **Talent Tree View:** The primary view, displaying the interactive, unlockable talent tree created by the Tree Editor.
+- **Skills View:** A grid displaying all OSRS skills, showing their locked/unlocked status and current level.
+- **Quests View:** A list of quests showing their status (Not Started, In Progress, Complete).
 
-3.2 Header Bar
-
-    A fixed header at the top of the main panel contains key status information and navigation.
-
-    Resource Display (Top-Left):
-
-        Displays the player's current Prodigy Points (PP), represented by the OSRS "Coins" icon.
-
-        Includes a placeholder for a secondary currency (e.g., "Keys").
-
-    Title (Center): Displays the project title, "Path of the Prodigy."
-
-    View Toggles (Top-Right):
-
-        Three clickable icons (Talent Tree, Skills, Quests) allow the user to switch between the main content views.
-
-        The active icon appears "pressed" with an inverted bevel to indicate the current view.
-
-3.3 Main Content Views
-
-    The area below the header displays one of three views, selected by the top-right toggle icons.
-
-3.3.1 Talent Tree View (Default)
-
-    Background: A pure black, high-contrast background to make the tree elements stand out.
-
-    Nodes (Orbs): Circular orbs represent unlockable talents.
-
-        Tiers:
-
-            Major Orbs: Large orbs representing significant unlocks (e.g., a new skill like "Slayer" or "Construction"). They serve as hubs for related sub-perks.
-
-            Minor Orbs: Smaller orbs representing incremental perks or sub-abilities that branch off from Major Orbs (e.g., "Mahogany Homes," "Plank Sack").
-
-        States & Visuals:
-
-            Locked: The orb is dim, desaturated, and has a metallic grey border. A prominent, metallic-style padlock icon is displayed in the center.
-
-            Available: The orb is fully colored and outlined with a vibrant blue border and glow. It is clickable.
-
-            Unlocked: The orb is fully colored and outlined with a vibrant gold border and glow. A prominent green checkmark icon is displayed in the center.
-
-    Connections:
-
-        Lines are drawn between dependent nodes using SVG bezier curves to create an organic, interlinked feel.
-
-        Lines physically connect to the edges of the orbs.
-
-        A line connecting to an unlocked node will be colored gold, clearly indicating available progression paths. All other lines are a dim grey.
-
-    Tooltips: Hovering over any non-locked node reveals a tooltip with an OSRS panel style, showing the node's name, description, and PP cost.
-
-3.3.2 Skills View
-
-    Replicates the OSRS skills tab from the reference image.
-
-    A grid displays all 23 OSRS skills.
-
-    Locked Skills: The skill slot has a dark background, a dimmed/desaturated icon, and is overlaid with a metallic padlock icon.
-
-    Unlocked Skills: The skill icon is fully colored, the slot has a golden border, and the player's current level is displayed in the top-left corner with yellow text.
-
-3.3.3 Quests View
-
-    A simple list of quests.
-
-    Each quest has a colored status dot to its left:
-
-        Red: Not Started
-
-        Orange/Yellow: In Progress
-
-        Green: Complete
-
-3.4 Log Panel
-
-    A fixed panel at the bottom of the main UI frame displays a log of events.
-
-    Functionality: Shows recent unlocks and system messages in reverse chronological order (newest at the bottom).
-
-    Styling: Features a semi-transparent black background and color-coded text (e.g., green for unlocks, red for system messages).
+3.3. Log Panel
+- A panel at the bottom that displays a log of recent unlocks and system messages.
 
 4. Visual Design & Aesthetic
 
-The application's visual identity is an "OSRS-Hybrid," blending the classic game interface with modern, clean functionality. The primary design goal is to match the provided reference images as closely as possible.
+The application's visual identity is an "OSRS-Hybrid," blending the classic game interface with modern, clean functionality.
+- **Font:** `Press Start 2P` is used exclusively.
+- **Colors & Borders:** The palette and UI panel styles are strictly limited to the OSRS UI conventions.
+- **Icons:** Official OSRS icons are used wherever possible.
 
-    Font: Press Start 2P is used exclusively to maintain the retro, pixelated feel.
+5. Technical Stack
 
-    Colors: The palette is strictly limited to the OSRS UI colors: textured browns, black, gold/yellow, and orange.
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+).
+- **Frameworks:** None (Vanilla JS).
+- **Dependencies:** Google Fonts, Font Awesome.
+- **Architecture:** A single-page, client-side application.
 
-    Borders & Panels: All UI elements use the characteristic OSRS double border (black outer, golden-brown inner) to create a sense of depth and authenticity.
+---
 
-    Icons: Official OSRS skill icons are used wherever possible. Generic actions are represented by high-quality, pixel-art-friendly icons (e.g., from Font Awesome, styled to fit).
+## 6. Tree Editor (`TreeEditor.html`)
 
-5. Gameplay Loop Example
+The Tree Editor is a standalone, client-side utility for creating, modifying, and saving the `TREE_DATA` object that powers the main application. It functions as a robust, visual authoring tool.
 
-    A new player starts with 10 PP. The web app shows only the "Genesis" node unlocked (gold). The three primary paths ("Path of Might," "Path of Craft," "Path of Mind") are available (blue).
+### 6.1. Overview & Layout
+- The editor is a two-panel application with a large canvas on the left and a controls panel on the right.
 
-    The player decides to become an artisan and clicks the "Path of Craft" orb.
+### 6.2. Canvas Functionality
+- **"Infinite" Canvas:** A large (50,000px x 50,000px) canvas provides a practically infinite area for tree creation.
+- **Panning & Zooming:** The canvas can be panned by clicking and dragging the background and zoomed using the mouse wheel.
+- **Grid & Snapping:** A visible 25px grid is displayed on the canvas. A "Snap to Grid" checkbox toggles whether nodes automatically snap to the nearest grid intersection when moved or created.
+- **Node Selection:**
+    - **Single-Click:** Selects a single node.
+    - **Shift-Click:** Adds or removes a node from the current selection.
+    - **Box Selection:** Clicking and dragging on the background creates a selection box to select multiple nodes.
+    - **Deselection:** Clicking on the background deselects all nodes.
 
-    1 PP is deducted. The "Path of Craft" orb turns gold and displays a checkmark.
+### 6.3. Controls Panel & Editing Features
 
-    The line connecting "Genesis" to "Path of Craft" turns gold.
+The right-hand panel provides all tools for populating and editing the tree.
 
-    The "Artisan Hub" node, which is connected to "Path of Craft," now becomes available (turns blue). The line between them remains grey.
+#### 6.3.1. Node Library ("All Nodes")
+- **Master List:** This panel contains a master list of all potential nodes that can be added to the tree, including all OSRS Skills, Quests, Raids, and various equipment/item unlocks.
+- **Add to Canvas:** Nodes in the list not currently on the canvas are greyed out and marked with a `[+]`. Clicking them adds them to the center of the current canvas view.
+- **Categories & Search:** The list is organized by categories (e.g., Skills, Quests, Armour, Weapons, Raids). A search bar allows for live, instantaneous filtering of the list by name.
 
-    The player, now on the Path of Craft, is permitted to begin tasks related to this path to earn more PP.
+#### 6.3.2. Node Manipulation (on Selection)
+When one or more nodes are selected on the canvas, a contextual set of tools appears:
+- **Info Box:** Displays the name and X/Y coordinates of the selected node.
+- **Delete Node:** A button to delete all currently selected nodes from the canvas.
+- **Link Mode:** A "Link/Unlink Children" button to enter a special mode for editing dependencies.
+    - While active, clicking any other node will toggle its dependency on the originally selected "parent" node.
+    - An "Unlink All Children" button also appears, allowing for bulk removal of all dependencies from the parent.
+- **Edit Panel (Single Selection Only):**
+    - **Rename:** Change the `name` of the selected node.
+    - **Edit Description:** A textarea to edit the node's `desc` property, with helper buttons for canned templates (e.g., "Unlock the [NAME] skill.").
+    - **Resize Node:** Buttons to change the node's size by assigning a `type` (`minor`, `major`, `epic`, `legendary`).
+    - **Icon Picker:** A gallery of all available icons. Clicking an icon instantly changes the selected node's `icon` property.
 
-6. Technical Stack
+#### 6.3.3. Persistence (Save/Load)
+- **Save to File:** A button that serializes the current state of the `TREE_DATA` object into a formatted `.json` file and triggers a browser download.
+- **Load from File:** A button that opens a file dialog. The user can select a previously saved `.json` file, which will be parsed, validated, and used to completely overwrite the current tree state, instantly loading the saved project.
 
-    Frontend: HTML5, CSS3, JavaScript (ES6+).
+## 7. Future Considerations
 
-    Frameworks: None. The project is a vanilla JS application to maintain simplicity and performance.
-
-    Dependencies: Google Fonts (for 'Press Start 2P'), Font Awesome (for generic icons).
-
-    Architecture: A single-page, client-side application. All data and state are managed within the browser. It does not interact with or modify the OSRS game client in any way.
-
-7. Future Considerations
-
-    Task Generation System: Implement a system within the app to generate tasks for the player to complete, which will be the primary source of PP. This could range from simple ("Mine 100 Iron Ore") to complex ("Complete the 'Dragon Slayer' quest").
-
-    Persistent State: Integrate a mechanism for players to save and load their progress (e.g., using localStorage, file export/import, or a simple backend with user accounts).
-
-    Tree Expansion: Design and add more skill clusters and paths to the talent tree to cover all aspects of OSRS gameplay, including high-level content.
-
-    Shareable Builds: Implement functionality to generate a unique URL that represents a player's current talent tree build, allowing them to share their progress and strategy with others.
-
-    Mobile Responsiveness: Adapt the UI for a seamless experience on mobile devices.
+- **Task Generation System:** Implement a system within the main application to generate tasks for the player to complete, which will be the primary source of PP.
+- **Shareable Builds:** Implement functionality to generate a unique URL that represents a player's current talent tree build.
+- **Mobile Responsiveness:** Adapt the UI for a seamless experience on mobile devices.
+- **Tree Expansion:** The Tree Editor now supports the creation of a vast tree. The next step is to use it to build out the complete, balanced talent tree for the main application.

@@ -64,6 +64,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            overflow-y: auto;
         }
         
         .controls-panel h2 {
@@ -414,9 +415,9 @@
                 <ul id="node-list"></ul>
             </div>
 
-            <button class="action-btn" id="generate-btn">Generate Output</button>
-            <textarea id="output-data" readonly placeholder="Click 'Generate Output' to see the updated TREE_DATA object here..."></textarea>
-            <button class="action-btn" id="copy-btn">Copy to Clipboard</button>
+            <button class="action-btn" id="save-btn">Save Tree to File</button>
+            <button class="action-btn" id="load-btn" style="margin-top: 10px;">Load Tree from File</button>
+            <input type="file" id="file-loader" style="display: none;" accept=".json">
         </div>
     </div>
 
@@ -501,9 +502,9 @@
         const treeCanvas = document.getElementById('tree-canvas');
         const treeContainer = document.getElementById('tree-container');
         const treeSvg = document.getElementById('tree-svg');
-        const generateBtn = document.getElementById('generate-btn');
-        const copyBtn = document.getElementById('copy-btn');
-        const outputData = document.getElementById('output-data');
+        const saveBtn = document.getElementById('save-btn');
+        const loadBtn = document.getElementById('load-btn');
+        const fileLoader = document.getElementById('file-loader');
         const infoNodeName = document.getElementById('info-node-name');
         const infoNodeX = document.getElementById('info-node-x');
         const infoNodeY = document.getElementById('info-node-y');
@@ -1117,34 +1118,60 @@
             }
         });
 
-        generateBtn.addEventListener('click', () => {
-            let outputString = JSON.stringify(TREE_DATA, null, 4);
-            // Use a regex to remove quotes from object keys for cleaner JS object literal format
-            outputString = outputString.replace(/"([^"]+)":/g, '$1:');
-            
-            const instructions = `
-/******************************************************************
- * * IMPORTANT INSTRUCTIONS:
- * * 1. Click 'Copy to Clipboard'.
- * 2. Open your main 'script.js' file.
- * 3. Find the existing 'const TREE_DATA = { ... };' object.
- * 4. Delete that entire object, from 'const TREE_DATA' 
- * down to its closing semicolon ';'.
- * 5. Paste this entire copied block in its place.
- * * This will update your node positions, names, and links 
- * without breaking the rest of your application's code.
- * ******************************************************************/
-`;
-            
-            outputData.value = `${instructions}\nconst TREE_DATA = ${outputString};`;
-            outputData.scrollTop = 0;
+        saveBtn.addEventListener('click', () => {
+            try {
+                const dataStr = JSON.stringify(TREE_DATA, null, 4);
+                const dataBlob = new Blob([dataStr], {type: "application/json"});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.download = 'skill-tree.json';
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert("Error saving file: " + error.message);
+            }
         });
 
-        copyBtn.addEventListener('click', () => {
-            outputData.select();
-            document.execCommand('copy');
-            copyBtn.textContent = 'Copied!';
-            setTimeout(() => copyBtn.textContent = 'Copy to Clipboard', 1500);
+        loadBtn.addEventListener('click', () => {
+            fileLoader.click();
+        });
+
+        fileLoader.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const loadedData = JSON.parse(event.target.result);
+                    
+                    // Basic validation
+                    if (typeof loadedData === 'object' && loadedData.genesis) {
+                        // It's a valid tree, overwrite the current data
+                        Object.keys(TREE_DATA).forEach(key => delete TREE_DATA[key]);
+                        Object.assign(TREE_DATA, loadedData);
+
+                        // Full UI refresh
+                        renderNodes();
+                        renderLines();
+                        renderNodeList();
+                        populateCategoryFilters();
+                        updateSelectionUI();
+                        alert('Tree loaded successfully!');
+                    } else {
+                        alert('Error: Invalid or corrupted tree file.');
+                    }
+                } catch (error) {
+                    alert('Error parsing file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset the input so the change event fires even if the same file is selected again
+            e.target.value = '';
         });
 
         const panelRect = treePanel.getBoundingClientRect();
