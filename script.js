@@ -55,36 +55,101 @@ document.addEventListener('DOMContentLoaded', () => {
 let TREE_DATA = {};
 
     let TASK_DATA = [
-        { id: 'ct_goblin', desc: 'Kill 50 Goblins (Combat Task)', reward: 2, status: 'incomplete' },
-        { id: 'ct_cow', desc: 'Kill 25 Cows using only Ranged (Combat Task)', reward: 3, status: 'incomplete' },
-        { id: 'ct_giant_rat', desc: 'Kill the Giant Rat in Lumbridge Sewers (Combat Task)', reward: 4, status: 'incomplete' },
-        { id: 'ct_kalphite_worker', desc: 'Kill a Kalphite Worker (Combat Task)', reward: 5, status: 'incomplete' },
-        { id: 'ct_hill_giant', desc: 'Kill 50 Hill Giants (Combat Task)', reward: 6, status: 'incomplete' }, 
-        { id: 'ct_moss_giant', desc: 'Kill a Moss Giant (Combat Task)', reward: 7, status: 'incomplete' }, 
-        
-        { id: 'ad_cooks_assistant', desc: "Complete the Cook's Assistant quest (Achievement Diary)", reward: 5, status: 'incomplete' },
-        { id: 'ad_chop_willow', desc: 'Chop a Willow tree in Lumbridge (Achievement Diary)', reward: 3, status: 'incomplete' },
-        { id: 'ad_lum_tele', desc: 'Use the Lumbridge Home Teleport (Achievement Diary)', reward: 1, status: 'incomplete' },
-        { id: 'ad_draynor_bank', desc: 'Deposit an item into the Draynor Village Bank (Achievement Diary)', reward: 3, status: 'incomplete' },
-        { id: 'ad_varrock_tele', desc: 'Cast the Varrock Teleport spell (Achievement Diary)', reward: 4, status: 'incomplete' }, 
-        { id: 'ad_al_kharid_gate', desc: 'Pay the toll gate in Al Kharid (Achievement Diary)', reward: 1, status: 'incomplete' }, 
-        { id: 'ad_mine_coal', desc: 'Mine a piece of Coal in Falador (Achievement Diary)', reward: 3, status: 'incomplete' }, 
-        { id: 'ad_run_falador_agi', desc: 'Use the Falador Agility shortcut (Achievement Diary)', reward: 5, status: 'incomplete' }, 
-
-        { id: 'cl_bronze_helmet', desc: 'Equip a Bronze full helmet (Collection Log)', reward: 2, status: 'incomplete' },
-        { id: 'cl_eye_of_newt', desc: 'Obtain an Eye of Newt drop (Collection Log)', reward: 3, status: 'incomplete' },
-        { id: 'cl_rune_essence', desc: 'Mine 100 Rune essence (Collection Log)', reward: 4, status: 'incomplete' },
-        { id: 'cl_curry_leaf', desc: 'Obtain a Curry Leaf from a patch (Collection Log)', reward: 4, status: 'incomplete' },
-        { id: 'cl_cowhide', desc: 'Tan 10 Cowhides in Al Kharid (Collection Log)', reward: 3, status: 'incomplete' }, 
-        { id: 'cl_fishing_net', desc: 'Catch a sardine with a small net (Collection Log)', reward: 2, status: 'incomplete' }, 
-        { id: 'cl_limpwurt_root', desc: 'Obtain a Limpwurt Root drop (Collection Log)', reward: 4, status: 'incomplete' }, 
-
-        { id: 'sm_fish_50', desc: 'Cook 50 successful Trout (Skilling Milestone)', reward: 3, status: 'incomplete' },
-        { id: 'sm_fletch_100', desc: 'Fletch 100 Willow shortbows (Skilling Milestone)', reward: 4, status: 'incomplete' },
-        { id: 'sm_mine_tin', desc: 'Mine 100 Tin Ore (Skilling Milestone)', reward: 2, status: 'incomplete' }, 
-        { id: 'sm_chop_oak', desc: 'Chop 50 Oak Logs (Skilling Milestone)', reward: 3, status: 'incomplete' }, 
-        { id: 'sm_fish_tuna', desc: 'Cook 25 Tuna (Skilling Milestone)', reward: 4, status: 'incomplete' }, 
-        { id: 'sm_make_plank', desc: 'Saw 10 regular Planks (Skilling Milestone)', reward: 2, status: 'incomplete' }, 
+        { id: 're_burn_food', desc: 'Burn any kind of food while trying to cook it', reward: 0, status: 'incomplete' },
+        { id: 're_burn_normal_logs', desc: 'Burn some Normal Logs', reward: 0, status: 'incomplete' },
+        { id: 're_bury_bones', desc: 'Bury any kind of Bones', reward: 0, status: 'incomplete' },
+        { id: 're_buy_from_trader', desc: 'Buy something from the Trader Crewmembers', reward: 0, status: 'incomplete' },
+        { id: 're_cast_home_teleport', desc: 'Cast the Home Teleport spell', reward: 0, status: 'incomplete' },
+        { id: 're_catch_baby_impling', desc: 'Catch a Baby Impling', reward: 0, status: 'incomplete', requirements: '17 Hunter' },
+        { id: 're_catch_herring', desc: 'Catch a Raw Herring whilst Fishing', reward: 0, status: 'incomplete', requirements: '10 Fishing' },
+        { id: 're_catch_shrimp', desc: 'Catch Raw Shrimp while Fishing', reward: 0, status: 'incomplete' },
+        { id: 're_catch_anchovy', desc: 'Catch a Raw Anchovy whilst Fishing', reward: 0, status: 'incomplete', requirements: '15 Fishing' },
+        { id: 're_check_slayer_task', desc: 'Use an Enchanted Gem to check your Slayer Task', reward: 0, status: 'incomplete' },
+        { id: 're_chop_logs', desc: 'Chop any kind of logs', reward: 0, status: 'incomplete' },
+        { id: 're_chop_with_steel_axe', desc: 'Chop any kind of logs using a Steel Axe', reward: 0, status: 'incomplete', requirements: '6 Woodcutting' },
+        { id: 're_clean_15_tarromin', desc: 'Clean 15 Grimy Tarromin', reward: 0, status: 'incomplete', requirements: '11 Herblore' },
+        { id: 're_clean_25_guam', desc: 'Clean 25 Grimy Guam Leafs', reward: 0, status: 'incomplete' },
+        { id: 're_clean_a_guam', desc: 'Clean a Grimy Guam', reward: 0, status: 'incomplete' },
+        { id: 're_cook_shrimp', desc: 'Cook Raw Shrimp', reward: 0, status: 'incomplete' },
+        { id: 're_craft_leather_body', desc: 'Craft a Leather Body', reward: 0, status: 'incomplete', requirements: '14 Crafting' },
+        { id: 're_create_compost_potion', desc: 'Create a Compost Potion', reward: 0, status: 'incomplete', requirements: '22 Herblore' },
+        { id: 're_create_antipoison', desc: 'Create an Antipoison', reward: 0, status: 'incomplete', requirements: '5 Herblore' },
+        { id: 're_cry_in_wheat', desc: 'Cry in a wheat field', reward: 0, status: 'incomplete' },
+        { id: 're_cut_sapphire', desc: 'Cut a Sapphire', reward: 0, status: 'incomplete', requirements: '20 Crafting' },
+        { id: 're_dance_in_graveyard', desc: 'Dance in a graveyard', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_goblin_1', desc: 'Defeat a Goblin 1 time', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_goblin_25', desc: 'Defeat a Goblin 25 times', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_guard_1', desc: 'Defeat a Guard 1 time', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_guard_25', desc: 'Defeat a Guard 25 times', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_moss_giant_1', desc: 'Defeat a Moss Giant 1 time', reward: 0, status: 'incomplete' },
+        { id: 're_defeat_moss_giant_25', desc: 'Defeat a Moss Giant 25 times', reward: 0, status: 'incomplete' },
+        { id: 're_drink_strength_potion', desc: 'Drink a Strength Potion', reward: 0, status: 'incomplete' },
+        { id: 're_dye_cape_orange', desc: 'Dye a cape orange', reward: 0, status: 'incomplete' },
+        { id: 're_eat_banana', desc: 'Eat a Banana', reward: 0, status: 'incomplete' },
+        { id: 're_enter_puro_puro', desc: 'Enter Puro Puro from a crop circle in mainland Gielinor', reward: 0, status: 'incomplete', requirements: '17 Hunter' },
+        { id: 're_enter_poh', desc: 'Enter your Player Owned House', reward: 0, status: 'incomplete' },
+        { id: 're_equip_spiny_helmet', desc: 'Equip a Spiny Helmet', reward: 0, status: 'incomplete', requirements: '5 Defence' },
+        { id: 're_equip_studded_body_chaps', desc: 'Equip a Studded Body along with some Studded Chaps', reward: 0, status: 'incomplete', requirements: '20 Ranged, 20 Defence' },
+        { id: 're_equip_elemental_staff', desc: 'Equip a basic elemental staff', reward: 0, status: 'incomplete' },
+        { id: 're_fletch_oak_shortbow', desc: 'Fletch an Oak Shortbow', reward: 0, status: 'incomplete', requirements: '20 Fletching' },
+        { id: 're_fletch_arrow_shafts', desc: 'Fletch some Arrow Shafts', reward: 0, status: 'incomplete' },
+        { id: 're_kill_necromancer_1', desc: 'Kill a Necromancer 1 time', reward: 0, status: 'incomplete' },
+        { id: 're_kill_necromancer_25', desc: 'Kill a Necromancer 25 times', reward: 0, status: 'incomplete' },
+        { id: 're_light_torch', desc: 'Light a Torch', reward: 0, status: 'incomplete' },
+        { id: 're_locate_altar', desc: 'Use any talisman to check the location of a Runecrafting Altar', reward: 0, status: 'incomplete' },
+        { id: 're_make_attack_potion', desc: 'Make an Attack Potion', reward: 0, status: 'incomplete' },
+        { id: 're_mine_5_tin', desc: 'Mine 5 Tin Ore', reward: 0, status: 'incomplete' },
+        { id: 're_mine_copper', desc: 'Mine some Copper Ore', reward: 0, status: 'incomplete' },
+        { id: 're_mine_essence', desc: 'Mine some essence', reward: 0, status: 'incomplete' },
+        { id: 're_mine_with_steel_pick', desc: 'Mine any ore using a Steel Pickaxe', reward: 0, status: 'incomplete', requirements: '6 Mining' },
+        { id: 're_obtain_bird_nest', desc: 'Obtain a Bird Nest whilst cutting down trees', reward: 0, status: 'incomplete' },
+        { id: 're_obtain_casket_fishing', desc: 'Obtain a Casket from Fishing', reward: 0, status: 'incomplete', requirements: '16 Fishing' },
+        { id: 're_perform_special_attack', desc: 'Perform any special attack', reward: 0, status: 'incomplete' },
+        { id: 're_pickpocket_citizen', desc: 'Pickpocket a Man or a Woman', reward: 0, status: 'incomplete' },
+        { id: 're_plant_in_allotment', desc: 'Plant some seeds in an Allotment patch', reward: 0, status: 'incomplete' },
+        { id: 're_protect_crops', desc: 'Pay a farmer to protect any of your crops', reward: 0, status: 'incomplete' },
+        { id: 're_purchase_poh', desc: 'Purchase a Player Owned House', reward: 0, status: 'incomplete' },
+        { id: 're_rake_patch', desc: 'Rake any Farming patch', reward: 0, status: 'incomplete' },
+        { id: 're_restore_5_prayer', desc: 'Restore 5 or more Prayer Points at any altar', reward: 0, status: 'incomplete', requirements: '5 Prayer' },
+        { id: 're_scatter_ashes', desc: 'Scatter some Ashes', reward: 0, status: 'incomplete' },
+        { id: 're_smelt_bronze_bar', desc: 'Use a Furnace to smelt a Bronze Bar', reward: 0, status: 'incomplete' },
+        { id: 're_smelt_iron_bar', desc: 'Use a Furnace to smelt an Iron Bar', reward: 0, status: 'incomplete', requirements: '15 Smithing' },
+        { id: 're_smith_bronze_helm', desc: 'Use an Anvil to smith a Bronze full helm', reward: 0, status: 'incomplete', requirements: '7 Smithing' },
+        { id: 're_smith_bronze_skirt', desc: 'Use an Anvil to smith a Bronze plateskirt', reward: 0, status: 'incomplete', requirements: '16 Smithing' },
+        { id: 're_snare_bird', desc: 'Catch any bird with a Bird Snare', reward: 0, status: 'incomplete' },
+        { id: 're_spin_wool', desc: 'Use a Spinning Wheel to spin a Ball of Wool', reward: 0, status: 'incomplete' },
+        { id: 're_steal_chocolate', desc: 'Steal a Chocolate Slice from a Bakery Stall', reward: 0, status: 'incomplete', requirements: '5 Thieving' },
+        { id: 're_steal_silk', desc: 'Steal some silk from a silk stall', reward: 0, status: 'incomplete', requirements: '20 Thieving' },
+        { id: 're_cut_red_topaz', desc: 'Successfully Cut a Red Topaz', reward: 0, status: 'incomplete', requirements: '16 Crafting' },
+        { id: 're_superhuman_improved', desc: 'Use both the Superhuman Strength prayer and the Improved Reflexes prayer at the same time', reward: 0, status: 'incomplete', requirements: '16 Prayer' },
+        { id: 're_logs_to_plank', desc: 'Use a Sawmill to turn Logs into a Plank', reward: 0, status: 'incomplete' },
+        { id: 're_use_hat_stand', desc: 'Put a hat on a hat stand, or try at least', reward: 0, status: 'incomplete' },
+        { id: 're_visit_deaths_domain', desc: "Visit Death's Domain", reward: 0, status: 'incomplete' },
+        { id: 're_visit_rune_essence_mine', desc: 'Visit the Rune Essence Mine', reward: 0, status: 'incomplete' },
+        { id: 're_medium_clue_1', desc: 'Open a Reward casket for completing a medium clue scroll', reward: 0, status: 'incomplete' },
+        { id: 're_medium_clue_25', desc: 'Open 25 Reward caskets for completing medium clue scrolls', reward: 0, status: 'incomplete' },
+        { id: 're_superior_slayer_25', desc: 'Defeat 25 superior foes while on a Slayer Task', reward: 0, status: 'incomplete', requirements: '5 Slayer, Unlocked Bigger and Badder' },
+        { id: 're_build_mahogany_portal', desc: 'Build a Mahogany Portal in a Portal Chamber in your Player Owned House', reward: 0, status: 'incomplete', requirements: '65 Construction' },
+        { id: 're_build_waka_canoe', desc: 'Build a Waka Canoe', reward: 0, status: 'incomplete', requirements: '57 Woodcutting' },
+        { id: 're_build_oak_larder', desc: 'Build an Oak Larder in a Kitchen in your Player Owned House', reward: 0, status: 'incomplete', requirements: '33 Construction' },
+        { id: 're_burn_100_willow', desc: 'Burn 100 Willow Logs', reward: 0, status: 'incomplete', requirements: '30 Firemaking' },
+        { id: 're_burn_25_maple', desc: 'Burn 25 Maple Logs', reward: 0, status: 'incomplete', requirements: '45 Firemaking' },
+        { id: 're_bury_wyvern_dragon_bones', desc: 'Bury either some Wyvern Bones or some Dragon Bones', reward: 0, status: 'incomplete' },
+        { id: 're_cast_blast_spell', desc: 'Cast any blast spell', reward: 0, status: 'incomplete', requirements: '41 Magic' },
+        { id: 're_cast_high_alchemy', desc: 'Cast the High Level Alchemy spell', reward: 0, status: 'incomplete', requirements: '55 Magic' },
+        { id: 're_catch_10_pike', desc: 'Catch 10 Pike', reward: 0, status: 'incomplete', requirements: '25 Fishing' },
+        { id: 're_catch_100_lobsters', desc: 'Catch 100 Raw Lobsters whilst Fishing', reward: 0, status: 'incomplete', requirements: '40 Fishing' },
+        { id: 're_hard_clue_1', desc: 'Open a Reward casket for completing a hard clue scroll', reward: 0, status: 'incomplete' },
+        { id: 're_hard_clue_75', desc: 'Open 75 Reward caskets for completing hard clue scrolls', reward: 0, status: 'incomplete' },
+        { id: 're_superior_slayer_100', desc: 'Defeat 100 superior foes while on a Slayer Task', reward: 0, status: 'incomplete', requirements: '5 Slayer, Unlocked Bigger and Badder' },
+        { id: 're_build_gilded_altar', desc: 'Build a Gilded Altar in a Chapel in your Player Owned House', reward: 0, status: 'incomplete', requirements: '75 Construction' },
+        { id: 're_burn_100_yew', desc: 'Burn 100 Yew Logs', reward: 0, status: 'incomplete', requirements: '60 Firemaking' },
+        { id: 're_burn_magic_logs', desc: 'Burn some Magic logs', reward: 0, status: 'incomplete', requirements: '75 Firemaking' },
+        { id: 're_cast_surge_spell', desc: 'Cast any surge spell', reward: 0, status: 'incomplete', requirements: '81 Magic' },
+        { id: 're_cast_wave_spell', desc: 'Cast any wave spell', reward: 0, status: 'incomplete', requirements: '62 Magic' },
+        { id: 're_catch_100_shark', desc: 'Catch 100 Raw Shark whilst Fishing', reward: 0, status: 'incomplete', requirements: '76 Fishing' },
+        { id: 're_catch_50_grey_chins', desc: 'Catch 50 Grey Chinchompas', reward: 0, status: 'incomplete', requirements: '53 Hunter' },
+        { id: 're_catch_dragon_impling', desc: 'Catch a Dragon Impling', reward: 0, status: 'incomplete', requirements: '83 Hunter' },
     ];
 
     const ppDisplay = document.getElementById('pp-display');
@@ -588,10 +653,20 @@ let TREE_DATA = {};
                 buttonHtml = `<button class="claim-btn" data-task-id="${task.id}">Claim</button>`;
             }
 
+            let requirementsHtml = '';
+            if (task.requirements) {
+                requirementsHtml = `<span class="task-reqs">Req: ${task.requirements}</span>`;
+            }
+
             item.innerHTML = `
-                <span class="task-desc">${task.desc}</span>
-                <span class="task-reward">+${task.reward} PP</span>
-                ${buttonHtml}
+                <div class="task-details">
+                    <span class="task-desc">${task.desc}</span>
+                    ${requirementsHtml}
+                </div>
+                <div class="task-actions">
+                    <span class="task-reward">+${task.reward} PP</span>
+                    ${buttonHtml}
+                </div>
             `;
             taskListContainer.appendChild(item);
         });

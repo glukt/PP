@@ -26,12 +26,15 @@ The Tree Editor is the heart of the content creation process. Use it to build an
 **Features:**
 -   **Build from a Master List:** The "All Nodes" panel contains a comprehensive, categorized, and searchable library of OSRS skills, quests, raids, and items. Click the `[+]` button to add any node to your canvas.
 -   **Visual Editing:** Drag and drop nodes on a vast, pannable, and zoomable canvas.
+-   **Minimap:** A minimap in the corner allows for quick navigation of large trees.
 -   **Node Customization:** Select a node to:
     -   Rename it.
     -   Change its size (`Minor`, `Major`, `Epic`, `Legendary`).
     -   Edit its description with template support.
     -   Change its icon from a large pool of in-game images.
 -   **Linking:** Use the "Link Mode" to quickly create or remove parent-child dependencies by clicking on nodes.
+-   **Quick-Add & Link:** A special mode to rapidly add and link new child nodes from the library to a selected parent.
+-   **Dynamic Counter:** The node library shows a live `used/total` count that updates as you filter and add nodes.
 -   **Save/Load:** Save your tree progress to a `.json` file on your computer and load it back into the editor at any time.
 
 **Workflow:**

@@ -456,14 +456,31 @@ body {
     color: var(--text-dark-grey);
 }
 
-.task-desc {
+.task-details {
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.task-desc {
+    margin-bottom: 5px; /* Add some space between desc and reqs */
+}
+
+.task-reqs {
+    font-size: 0.8em;
+    color: var(--text-light-grey);
+}
+
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .task-reward {
     color: var(--status-green);
     font-weight: bold;
-    flex-shrink: 0;
 }
 
 .claim-btn {

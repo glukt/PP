@@ -58,9 +58,9 @@ The application's visual identity is an "OSRS-Hybrid," blending the classic game
 
 ---
 
-## 6. Tree Editor (`TreeEditor.html`)
+## 6. Tree Editor
 
-The Tree Editor is a standalone, client-side utility for creating, modifying, and saving the `TREE_DATA` object that powers the main application. It functions as a robust, visual authoring tool.
+The Tree Editor is a standalone, client-side utility for creating, modifying, and saving the `TREE_DATA` object that powers the main application. It functions as a robust, visual authoring tool, now composed of `TreeEditor.html`, `TreeEditor.css`, and `TreeEditor.js`.
 
 ### 6.1. Overview & Layout
 - The editor is a two-panel application with a large canvas on the left and a controls panel on the right.
@@ -69,11 +69,16 @@ The Tree Editor is a standalone, client-side utility for creating, modifying, an
 - **"Infinite" Canvas:** A large (50,000px x 50,000px) canvas provides a practically infinite area for tree creation.
 - **Panning & Zooming:** The canvas can be panned by clicking and dragging the background and zoomed using the mouse wheel.
 - **Grid & Snapping:** A visible 25px grid is displayed on the canvas. A "Snap to Grid" checkbox toggles whether nodes automatically snap to the nearest grid intersection when moved or created.
-- **Node Selection:**
+- **Node Selection & Interaction:**
     - **Single-Click:** Selects a single node.
     - **Shift-Click:** Adds or removes a node from the current selection.
     - **Box Selection:** Clicking and dragging on the background creates a selection box to select multiple nodes.
-    - **Deselection:** Clicking on the background deselects all nodes.
+    - **Multi-Drag:** Multiple selected nodes can be dragged and moved across the canvas simultaneously.
+    - **Deselection:** Clicking on the background or pressing the `Escape` key deselects all nodes.
+- **Minimap:** A small map in the bottom-left corner provides an overview of the entire canvas.
+    - It displays a scaled-down representation of all nodes.
+    - A viewport rectangle shows the current position of the main canvas view.
+    - Clicking and dragging within the minimap allows for rapid panning across large distances.
 
 ### 6.3. Controls Panel & Editing Features
 
@@ -81,8 +86,9 @@ The right-hand panel provides all tools for populating and editing the tree.
 
 #### 6.3.1. Node Library ("All Nodes")
 - **Master List:** This panel contains a master list of all potential nodes that can be added to the tree, including all OSRS Skills, Quests, Raids, and various equipment/item unlocks.
-- **Add to Canvas:** Nodes in the list not currently on the canvas are greyed out and marked with a `[+]`. Clicking them adds them to the center of the current canvas view.
-- **Categories & Search:** The list is organized by categories (e.g., Skills, Quests, Armour, Weapons, Raids). A search bar allows for live, instantaneous filtering of the list by name.
+- **Add to Canvas:** Nodes in the list not currently on the canvas are marked with a `[+]`. Clicking them adds them to the center of the current canvas view.
+- **Categories & Search:** The list is organized by categories (e.g., Skills, Quests, Armour, Weapons, Raids). A search bar and category buttons allow for live, instantaneous filtering of the list.
+- **Usage Counter:** A counter at the top of the panel displays the number of nodes used versus the total available in the current filtered view (e.g., `1/3` if one of the three Raid nodes has been placed).
 
 #### 6.3.2. Node Manipulation (on Selection)
 When one or more nodes are selected on the canvas, a contextual set of tools appears:
@@ -91,6 +97,7 @@ When one or more nodes are selected on the canvas, a contextual set of tools app
 - **Link Mode:** A "Link/Unlink Children" button to enter a special mode for editing dependencies.
     - While active, clicking any other node will toggle its dependency on the originally selected "parent" node.
     - An "Unlink All Children" button also appears, allowing for bulk removal of all dependencies from the parent.
+- **Quick-Add & Link Mode:** A streamlined workflow for rapidly expanding the tree. After clicking the button, the next node clicked on the canvas becomes the parent, and any subsequent nodes added from the Node Library will be automatically placed near and linked as its child.
 - **Edit Panel (Single Selection Only):**
     - **Rename:** Change the `name` of the selected node.
     - **Edit Description:** A textarea to edit the node's `desc` property, with helper buttons for canned templates (e.g., "Unlock the [NAME] skill.").
