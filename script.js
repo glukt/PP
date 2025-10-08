@@ -98,6 +98,17 @@ let TREE_DATA = {};
     const taskListContainer = document.getElementById('task-list-container');
     const toggleIcons = document.querySelectorAll('.toggle-icon');
     const contentViews = document.querySelectorAll('.content-view');
+
+    let isPanning = false;
+    let startX, startY;
+    let canvasX = 0;
+    let canvasY = 0;
+    let initialCanvasX = 0;
+    let initialCanvasY = 0;
+    let scale = 0.5; 
+    const scaleFactor = 0.1;
+    const minScale = 0.2;
+    const maxScale = 2.0;
     const loadTreeOverlay = document.getElementById('load-tree-overlay');
     const loadTreeBtn = document.getElementById('load-tree-btn');
     const treeFileLoader = document.getElementById('tree-file-loader');
@@ -127,17 +138,6 @@ let TREE_DATA = {};
         e.target.value = '';
     });
 
-    let isPanning = false;
-    let startX, startY;
-    let canvasX = 0;
-    let canvasY = 0;
-    let initialCanvasX = 0;
-    let initialCanvasY = 0;
-    let scale = 0.7; 
-    const scaleFactor = 0.1;
-    const minScale = 0.5;
-    const maxScale = 2.0;
-    
     const applyTransform = () => {
         treeCanvas.style.transform = `translate(${canvasX}px, ${canvasY}px) scale(${scale})`;
     };
@@ -618,5 +618,21 @@ let TREE_DATA = {};
         renderTasks();
         addLog('Welcome to Path of the Prodigy. Your 5 initial PP are ready to spend!', 'system');
         switchView('talent-tree-view');
+
+        // Center the view on the genesis node
+        const genesisNode = Object.values(TREE_DATA).find(node => node.name === 'Genesis');
+        const canvasSize = 8000;
+        const panelRect = treeView.getBoundingClientRect();
+        if (genesisNode) {
+            const nodeX = parseFloat(genesisNode.pos.x) / 100 * canvasSize;
+            const nodeY = parseFloat(genesisNode.pos.y) / 100 * canvasSize;
+            canvasX = (panelRect.width / 2) - (nodeX * scale);
+            canvasY = (panelRect.height / 2) - (nodeY * scale);
+        } else {
+            // Fallback for trees without a genesis node
+            canvasX = (panelRect.width / 2) - (canvasSize * 0.5 * scale);
+            canvasY = (panelRect.height / 2) - (canvasSize * 0.5 * scale);
+        }
+        applyTransform();
     }
 });
