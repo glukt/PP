@@ -1,7 +1,7 @@
 Project Specification: Path of the Prodigy
 
-Version: 1.1
-Date: October 7, 2025
+Version: 1.2
+Date: October 8, 2025
 
 1. Overview
 
@@ -10,8 +10,8 @@ Date: October 7, 2025
 The core of the project is an interactive talent tree, created and curated via the **Tree Editor** utility. Players interact with the main application to spend "Prodigy Points" (PP) to unlock skills, equipment, minigames, and abilities defined in the talent tree. This turns account progression into a strategic, choice-driven experience.
 
 This document specifies two distinct components:
-- The main **Path of the Prodigy Application** (`index.html`), the player-facing progression tracker.
-- The **Tree Editor** (`TreeEditor.html`), a standalone authoring tool used to create and modify the talent tree itself.
+- The main **Path of the Prodigy Application** (`app/index.html`), the player-facing progression tracker.
+- The **Tree Editor** (`editor/TreeEditor.html`), a standalone authoring tool used to create and modify the talent tree itself.
 
 2. Core Concept (Main Application)
 
@@ -51,7 +51,7 @@ The application's visual identity is an "OSRS-Hybrid," blending the classic game
 
 5. Technical Stack
 
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+).
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+ Modules).
 - **Frameworks:** None (Vanilla JS).
 - **Dependencies:** Google Fonts, Font Awesome.
 - **Architecture:** A single-page, client-side application.
@@ -60,7 +60,9 @@ The application's visual identity is an "OSRS-Hybrid," blending the classic game
 
 ## 6. Tree Editor
 
-The Tree Editor is a standalone, client-side utility for creating, modifying, and saving the `TREE_DATA` object that powers the main application. It functions as a robust, visual authoring tool, now composed of `TreeEditor.html`, `TreeEditor.css`, and `TreeEditor.js`.
+The Tree Editor is a standalone, client-side utility for creating, modifying, and saving the `TREE_DATA` object that powers the main application. It functions as a robust, visual authoring tool.
+
+Following a major refactor, the editor's logic is no longer a single monolithic script but is now composed of `editor/TreeEditor.html`, `editor/TreeEditor.css`, and a collection of modular JavaScript files located in the `editor/js/` directory. This modular architecture is detailed in Section 8.
 
 ### 6.1. Overview & Layout
 - The editor is a two-panel application with a large canvas on the left and a controls panel on the right.
@@ -68,7 +70,7 @@ The Tree Editor is a standalone, client-side utility for creating, modifying, an
 ### 6.2. Canvas Functionality
 - **"Infinite" Canvas:** A large (50,000px x 50,000px) canvas provides a practically infinite area for tree creation.
 - **Panning & Zooming:** The canvas can be panned by clicking and dragging the background and zoomed using the mouse wheel.
-- **Grid & Snapping:** A visible 25px grid is displayed on the canvas. A "Snap to Grid" checkbox toggles whether nodes automatically snap to the nearest grid intersection when moved or created.
+- **Grid & Snapping:** A "Snap to Grid" checkbox toggles whether nodes automatically snap to the nearest grid intersection when moved or created.
 - **Node Selection & Interaction:**
     - **Single-Click:** Selects a single node.
     - **Shift-Click:** Adds or removes a node from the current selection.
@@ -76,37 +78,26 @@ The Tree Editor is a standalone, client-side utility for creating, modifying, an
     - **Multi-Drag:** Multiple selected nodes can be dragged and moved across the canvas simultaneously.
     - **Deselection:** Clicking on the background or pressing the `Escape` key deselects all nodes.
 - **Minimap:** A small map in the bottom-left corner provides an overview of the entire canvas.
-    - It displays a scaled-down representation of all nodes.
-    - A viewport rectangle shows the current position of the main canvas view.
-    - Clicking and dragging within the minimap allows for rapid panning across large distances.
 
 ### 6.3. Controls Panel & Editing Features
 
 The right-hand panel provides all tools for populating and editing the tree.
 
 #### 6.3.1. Node Library ("All Nodes")
-- **Master List:** This panel contains a master list of all potential nodes that can be added to the tree, including all OSRS Skills, Quests, Raids, and various equipment/item unlocks.
-- **Add to Canvas:** Nodes in the list not currently on the canvas are marked with a `[+]`. Clicking them adds them to the center of the current canvas view.
-- **Categories & Search:** The list is organized by categories (e.g., Skills, Quests, Armour, Weapons, Raids). A search bar and category buttons allow for live, instantaneous filtering of the list.
-- **Usage Counter:** A counter at the top of the panel displays the number of nodes used versus the total available in the current filtered view (e.g., `1/3` if one of the three Raid nodes has been placed).
+- **Master List:** A filterable and searchable master list of all potential nodes (Skills, Quests, Raids, etc.).
+- **Add to Canvas:** Clicking the `[+]` icon next to a node in the library adds it to the center of the current canvas view.
+- **Usage Counter:** A counter displays the number of nodes used versus the total available in the current filtered view.
 
 #### 6.3.2. Node Manipulation (on Selection)
-When one or more nodes are selected on the canvas, a contextual set of tools appears:
 - **Info Box:** Displays the name and X/Y coordinates of the selected node.
-- **Delete Node:** A button to delete all currently selected nodes from the canvas.
-- **Link Mode:** A "Link/Unlink Children" button to enter a special mode for editing dependencies.
-    - While active, clicking any other node will toggle its dependency on the originally selected "parent" node.
-    - An "Unlink All Children" button also appears, allowing for bulk removal of all dependencies from the parent.
-- **Quick-Add & Link Mode:** A streamlined workflow for rapidly expanding the tree. After clicking the button, the next node clicked on the canvas becomes the parent, and any subsequent nodes added from the Node Library will be automatically placed near and linked as its child.
-- **Edit Panel (Single Selection Only):**
-    - **Rename:** Change the `name` of the selected node.
-    - **Edit Description:** A textarea to edit the node's `desc` property, with helper buttons for canned templates (e.g., "Unlock the [NAME] skill.").
-    - **Resize Node:** Buttons to change the node's size by assigning a `type` (`minor`, `major`, `epic`, `legendary`).
-    - **Icon Picker:** A gallery of all available icons. Clicking an icon instantly changes the selected node's `icon` property.
+- **Delete Node:** Deletes all currently selected nodes.
+- **Link Mode:** A "Link/Unlink Children" button to enter a mode for editing dependencies.
+- **Quick-Add & Link Mode:** A streamlined workflow for rapidly expanding the tree from a parent node.
+- **Edit Panel (Single Selection Only):** Allows for renaming, description editing, resizing, and icon changes for a single selected node.
 
 #### 6.3.3. Persistence (Save/Load)
-- **Save to File:** A button that serializes the current state of the `TREE_DATA` object into a formatted `.json` file and triggers a browser download.
-- **Load from File:** A button that opens a file dialog. The user can select a previously saved `.json` file, which will be parsed, validated, and used to completely overwrite the current tree state, instantly loading the saved project.
+- **Save to File:** Serializes the current tree state into a downloadable `.json` file.
+- **Load from File:** Parses a selected `.json` file to completely overwrite and load a tree state.
 
 ## 7. Future Considerations
 
@@ -114,3 +105,48 @@ When one or more nodes are selected on the canvas, a contextual set of tools app
 - **Shareable Builds:** Implement functionality to generate a unique URL that represents a player's current talent tree build.
 - **Mobile Responsiveness:** Adapt the UI for a seamless experience on mobile devices.
 - **Tree Expansion:** The Tree Editor now supports the creation of a vast tree. The next step is to use it to build out the complete, balanced talent tree for the main application.
+
+---
+
+## 8. Technical Architecture & State
+
+This section details the current file structure and the architecture of the JavaScript modules, primarily for the Tree Editor. It serves as a technical reference for AI-assisted development.
+
+### 8.1. File Structure
+
+The project is organized into two main subdirectories:
+
+-   `/app`: Contains the player-facing Path of the Prodigy application (`index.html`, `style.css`, `script.js`).
+-   `/editor`: Contains the standalone Tree Editor utility.
+    -   `TreeEditor.html`: The editor's main page.
+    -   `TreeEditor.css`: The editor's stylesheet.
+    -   `/js`: The modular JavaScript source for the editor.
+
+### 8.2. Tree Editor JavaScript Architecture (`/editor/js/`)
+
+The editor's JavaScript is modular, with a central entry point in `main.js`.
+
+-   `main.js`: Initializes all modules and sets up global event listeners to coordinate between them.
+-   `/constants`: Contains static, read-only data.
+    -   `icons.js`: Exports arrays of icon URLs.
+    -   `masterNodeLibrary.js`: Exports the `MASTER_NODE_LIBRARY` object containing data for all potential nodes.
+-   `/dom`:
+    -   `elements.js`: Selects and exports all necessary DOM element references for use across all modules.
+-   `/state`:
+    -   `appState.js`: Exports the global `state` object, which holds all mutable application data (e.g., `TREE_DATA`, `selectedNodeIds`, canvas position, interaction modes).
+-   `/features`: Contains the core logic, separated by feature.
+    -   `renderer.js`: **The View Layer.** A critical module that handles all DOM manipulation and rendering. It exports functions like `renderAll()`, `renderNodes()`, `renderLines()`, etc. Other modules call these functions to update the UI.
+    -   `canvas.js`: Handles canvas interactions like panning, zooming, and minimap clicks. It calls the `renderer` to apply visual changes.
+    -   `nodes.js`: Handles the logic for creating, deleting, dragging, and editing nodes.
+    -   `linking.js`: Manages the logic for entering/exiting "link mode" and creating/destroying node dependencies.
+    -   `shapes.js`: Handles the logic for creating predefined shapes of nodes (grids, circles, etc.).
+    -   `io.js`: Manages saving the tree to a JSON file and loading a tree from a file.
+    -   `ui.js`: Manages UI elements not directly on the canvas, such as the pop-out node list panel.
+-   `/utils`:
+    -   `transformations.js`: Contains mathematical logic for multi-node transformations (rotate, flip, scale).
+
+### 8.3. Current Development State
+
+-   **Refactoring Complete:** The `TreeEditor.js` monolith has been successfully refactored into the modular structure described above.
+-   **File Organization Complete:** The project files have been organized into `/app` and `/editor` directories.
+-   **Known Issue:** Several icon URLs hardcoded in `editor/js/constants/masterNodeLibrary.js` are resulting in 404 (Not Found) errors and need to be updated. The search for correct URLs was initiated but not completed.
