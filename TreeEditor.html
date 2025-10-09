@@ -44,7 +44,46 @@
             <button class="action-btn" id="link-mode-btn" style="display: none; margin-top: 10px;">Link/Unlink Children</button>
             <button class="action-btn" id="unlink-all-btn" style="display: none; margin-top: 5px; background-color: #ac5f5f;">Unlink All Children</button>
 
+            <div id="multi-select-actions-panel" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-grey); padding-top: 15px;">
+                <h4 style="font-size: 10px; color: var(--text-yellow); margin: 0 0 10px 0; text-align: center;">Group Actions</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
+                    <button class="action-btn" id="rotate-left-btn" title="Rotate Left 45°" style="font-size: 18px;">⟲</button>
+                    <button class="action-btn" id="rotate-right-btn" title="Rotate Right 45°" style="font-size: 18px;">⟳</button>
+                    <button class="action-btn" id="flip-horizontal-btn" title="Flip Horizontal" style="font-size: 18px;">↔</button>
+                    <button class="action-btn" id="flip-vertical-btn" title="Flip Vertical" style="font-size: 18px;">↕</button>
+                    <button class="action-btn" id="expand-nodes-btn" title="Expand" style="font-size: 18px;">⤢</button>
+                    <button class="action-btn" id="contract-nodes-btn" title="Contract" style="font-size: 18px;">⤡</button>
+                </div>
+            </div>
+
             <button class="action-btn" id="quick-add-link-btn" style="margin-top: 10px;">Quick-Add & Link</button>
+
+            <div class="form-box" style="margin-top: 20px;">
+                <h3 style="font-size: 12px; color: var(--text-yellow); margin-bottom: 10px; text-align: center; border-bottom: 1px solid var(--border-grey); padding-bottom: 5px;">Shape Presets</h3>
+                
+                <button class="action-btn" id="build-shape-list-btn">Select Nodes for Shape</button> 
+                
+                <div id="shape-node-list-container" style="border: 1px solid var(--border-grey); min-height: 50px; margin-top: 10px; padding: 5px; background-color: #1a1a1a; border-radius: 3px;">
+                    <p id="shape-list-placeholder" style="color: var(--text-light-grey); font-size: 10px; text-align: center; margin: 15px 0;">Click "Select Nodes" then pick from the 'All Nodes' list.</p>
+                    
+                </div>
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <button class="action-btn" id="clear-shape-list-btn" style="background-color: #ac5f5f; flex-grow: 1;">Clear List</button>
+                </div>
+        
+                <label for="shape-preset-select" style="font-size: 10px; color: var(--text-light-grey); margin-top: 10px; display: block;">Choose a shape:</label>
+                <select id="shape-preset-select" class="osrs-input" style="margin-top: 5px;">
+                    <option value="grid">Grid</option>
+                    <option value="circle">Circle</option>
+                    <option value="line">Line</option>
+                    <option value="spiral">Spiral</option>
+                    <option value="wheel">Wheel</option>
+                    <option value="arc">Arc</option>
+                    <option value="triangle">Triangle</option>
+                </select>
+                
+                <button class="action-btn" id="create-shape-btn" style="margin-top: 15px;">Create Shape from List</button>
+            </div>
 
             <div id="edit-node-panel">
                 <input type="text" id="edit-node-name" class="osrs-input" placeholder="Rename node...">
@@ -76,7 +115,15 @@
             </div>
 
             <div id="node-list-panel">
-                <h3>All Nodes <span id="node-counter" style="float: right;"></span></h3>
+                <h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>All Nodes</span>
+                        <div>
+                            <span id="node-counter" style="margin-right: 10px; font-size: 12px;"></span>
+                            <button id="toggle-node-list-size-btn" title="Maximize/Restore List" style="background: none; border: 1px solid var(--border-grey); color: var(--text-light-grey); cursor: pointer; padding: 2px 5px; font-size: 14px;">❐</button>
+                        </div>
+                    </div>
+                </h3>
                 <input type="text" id="node-search" class="osrs-input" placeholder="Search nodes...">
                 <div id="node-category-filters"></div>
                 <ul id="node-list"></ul>

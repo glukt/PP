@@ -166,6 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconPool = document.getElementById('icon-pool');
     const unlinkAllBtn = document.getElementById('unlink-all-btn');
     const quickAddLinkBtn = document.getElementById('quick-add-link-btn');
+    const multiSelectActionsPanel = document.getElementById('multi-select-actions-panel');
+    const rotateRightBtn = document.getElementById('rotate-right-btn');
+    const rotateLeftBtn = document.getElementById('rotate-left-btn');
+    const flipHorizontalBtn = document.getElementById('flip-horizontal-btn');
+    const flipVerticalBtn = document.getElementById('flip-vertical-btn');
+    const expandNodesBtn = document.getElementById('expand-nodes-btn');
+    const contractNodesBtn = document.getElementById('contract-nodes-btn');
     const nodeSearchInput = document.getElementById('node-search');
     const nodeCategoryFilters = document.getElementById('node-category-filters');
     const miniMap = document.getElementById('mini-map');
@@ -173,7 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const miniMapViewport = document.getElementById('mini-map-viewport');
     const CANVAS_SIZE = 50000;
 
+    const createShapeBtn = document.getElementById('create-shape-btn');
+    const shapePresetSelect = document.getElementById('shape-preset-select');
+    const buildShapeListBtn = document.getElementById('build-shape-list-btn');
+    const clearShapeListBtn = document.getElementById('clear-shape-list-btn');
+    const shapeNodeListContainer = document.getElementById('shape-node-list-container');
+
     let activeCategory = 'All';
+    let shapeNodeList = [];
+    let isShapeListBuildingMode = false;
 
     let isDragging = false;
     let isInLinkMode = false;
@@ -196,6 +211,213 @@ document.addEventListener('DOMContentLoaded', () => {
     const scaleFactor = 0.1;
     const minScale = 0.2;
     const maxScale = 2.5;
+
+    function renderShapeNodeList() {
+        shapeNodeListContainer.innerHTML = ''; // Clear current list
+        if (shapeNodeList.length === 0) {
+            shapeNodeListContainer.innerHTML = `<p id="shape-list-placeholder" style="color: var(--text-light-grey); font-size: 10px; text-align: center; margin: 15px 0;">Click "Select Nodes" then pick from the 'All Nodes' list.</p>`;
+        } else {
+            shapeNodeList.forEach((nodeName, index) => {
+                const pill = document.createElement('div');
+                pill.style.cssText = 'display: inline-flex; align-items: center; background-color: var(--osrs-dark-grey); color: var(--text-yellow); padding: 2px 8px; margin: 2px; border-radius: 3px; font-size: 10px;';
+                pill.textContent = nodeName;
+                
+                const removeBtn = document.createElement('span');
+                removeBtn.textContent = '×';
+                removeBtn.style.cssText = 'margin-left: 8px; cursor: pointer; color: var(--text-light-grey);';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    shapeNodeList.splice(index, 1);
+                    renderShapeNodeList();
+                };
+                
+                pill.appendChild(removeBtn);
+                shapeNodeListContainer.appendChild(pill);
+            });
+        }
+    }
+
+    function toggleShapeListBuildMode() {
+        isShapeListBuildingMode = !isShapeListBuildingMode;
+
+        if (isShapeListBuildingMode) {
+            buildShapeListBtn.textContent = 'Finish Selecting';
+            buildShapeListBtn.style.backgroundColor = '#5cb85c';
+            nodeList.style.cursor = 'copy';
+            nodeList.classList.add('shape-building-active');
+        } else {
+            buildShapeListBtn.textContent = 'Select Nodes for Shape';
+            buildShapeListBtn.style.backgroundColor = '';
+            nodeList.style.cursor = '';
+            nodeList.classList.remove('shape-building-active');
+        }
+    }
+
+    function createNodeShape() {
+        const shape = shapePresetSelect.value;
+        const nodeNames = [...shapeNodeList];
+
+        if (nodeNames.length === 0) {
+            alert('Please build a list of nodes first.');
+            return;
+        }
+
+        // Find the master library entries first, case-insensitively, and map name to master key
+        const masterNodeMap = new Map();
+        Object.entries(MASTER_NODE_LIBRARY).forEach(([key, node]) => {
+            masterNodeMap.set(node.name.toLowerCase(), { key, node });
+        });
+
+        const nodesToCreate = nodeNames.map(name => {
+            const trimmedName = name.trim().toLowerCase();
+            return masterNodeMap.get(trimmedName);
+        }).filter(Boolean); // Filter out names not found in the library
+
+        if (nodesToCreate.length !== nodeNames.length) {
+            const notFound = nodeNames.filter(name => !masterNodeMap.has(name.trim().toLowerCase()));
+            alert(`Warning: ${nodesToCreate.length} / ${nodeNames.length} nodes found in the library. The following were not found and will be skipped:\n\n- ${notFound.join('\n- ')}`);
+        }
+
+        if (nodesToCreate.length === 0) {
+            return;
+        }
+
+        const canvasWidth = treeCanvas.offsetWidth;
+        const canvasHeight = treeCanvas.offsetHeight;
+        const centerX = ((-canvasX + treePanel.clientWidth / 2) / scale);
+        const centerY = ((-canvasY + treePanel.clientHeight / 2) / scale);
+        const spacing = 150; // spacing in pixels
+
+        nodesToCreate.forEach(({ key: masterId, node: masterNode }, index) => {
+            let x, y;
+
+            switch (shape) {
+                case 'circle': {
+                    const radius = (nodesToCreate.length * spacing) / (2 * Math.PI) / 2;
+                    const angle = (index / nodesToCreate.length) * 2 * Math.PI;
+                    x = centerX + radius * Math.cos(angle);
+                    y = centerY + radius * Math.sin(angle);
+                    break;
+                }
+                case 'line': {
+                    x = centerX + (index - (nodesToCreate.length - 1) / 2) * spacing;
+                    y = centerY;
+                    break;
+                }
+                case 'grid': {
+                    const cols = Math.ceil(Math.sqrt(nodesToCreate.length));
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    const gridWidth = (cols - 1) * spacing;
+                    x = (centerX - gridWidth / 2) + col * spacing;
+                    y = centerY + row * spacing;
+                    break;
+                }
+                case 'spiral': {
+                    const spiralSpacing = spacing / 2;
+                    const angle2 = 0.5 * index;
+                    x = centerX + spiralSpacing * angle2 * Math.cos(angle2);
+                    y = centerY + spiralSpacing * angle2 * Math.sin(angle2);
+                    break;
+                }
+                case 'wheel': {
+                    if (nodesToCreate.length <= 1) {
+                        x = centerX;
+                        y = centerY;
+                    } else {
+                        if (index === 0) { // Center node
+                            x = centerX;
+                            y = centerY;
+                        } else { // Outer nodes
+                            const wheelNodeCount = nodesToCreate.length - 1;
+                            const radius = spacing * 0.75;
+                            const angle = ((index - 1) / wheelNodeCount) * 2 * Math.PI;
+                            x = centerX + radius * Math.cos(angle);
+                            y = centerY + radius * Math.sin(angle);
+                        }
+                    }
+                    break;
+                }
+                case 'arc': {
+                    const arcNodeCount = nodesToCreate.length;
+                    if (arcNodeCount <= 1) {
+                        x = centerX;
+                        y = centerY;
+                    } else {
+                        const totalAngle = Math.PI; // 180 degrees
+                        const radius = (arcNodeCount * spacing) / (2 * totalAngle);
+                        const angle = (index / (arcNodeCount - 1)) * totalAngle - (totalAngle / 2);
+                        x = centerX + radius * Math.cos(angle);
+                        y = centerY + radius * Math.sin(angle);
+                    }
+                    break;
+                }
+                case 'triangle': {
+                    const sideLength = spacing * 1.5;
+                    const triHeight = sideLength * Math.sqrt(3) / 2;
+                    switch (index) {
+                        case 0: // Top vertex
+                            x = centerX;
+                            y = centerY - triHeight / 2;
+                            break;
+                        case 1: // Bottom-left vertex
+                            x = centerX - sideLength / 2;
+                            y = centerY + triHeight / 2;
+                            break;
+                        case 2: // Bottom-right vertex
+                            x = centerX + sideLength / 2;
+                            y = centerY + triHeight / 2;
+                            break;
+                        case 3: // Midpoint top-left edge
+                            x = centerX - sideLength / 4;
+                            y = centerY;
+                            break;
+                        case 4: // Midpoint top-right edge
+                            x = centerX + sideLength / 4;
+                            y = centerY;
+                            break;
+                        case 5: // Midpoint bottom edge
+                            x = centerX;
+                            y = centerY + triHeight / 2;
+                            break;
+                        default: // Stack any remaining in the center
+                            x = centerX;
+                            y = centerY;
+                            break;
+                    }
+                    break;
+                }
+            }
+
+            // Ensure ID is unique
+            let newId = masterId;
+            let counter = 1;
+            while (TREE_DATA[newId]) {
+                newId = `${masterId}_${counter++}`;
+            }
+
+            const xPercent = (x / canvasWidth * 100).toFixed(2);
+            const yPercent = (y / canvasHeight * 100).toFixed(2);
+
+            TREE_DATA[newId] = {
+                type: 'minor',
+                name: masterNode.name,
+                desc: `The '${masterNode.name}' node.`,
+                cost: 1,
+                status: 'locked',
+                deps: [],
+                pos: { x: `${xPercent}%`, y: `${yPercent}%` },
+                icon: masterNode.icon
+            };
+        });
+
+        // Full UI refresh
+        renderNodes();
+        renderLines();
+        renderNodeList();
+        updateSelectionUI();
+        alert(`Created ${nodesToCreate.length} nodes in a ${shape} shape.`);
+    }
 
     function renderMiniMap() {
         if (!miniMap) return;
@@ -336,84 +558,301 @@ document.addEventListener('DOMContentLoaded', () => {
                     nodeCounter.textContent = `${usedNodesInFilter}/${totalNodesInFilter}`;
                 }
     
-                nodeList.innerHTML = '';        filteredList.forEach(([id, masterNode]) => {
-            const li = document.createElement('li');
-            const existingNodeId = nodesOnCanvas.get(masterNode.name);
+                nodeList.innerHTML = '';      
 
-            if (existingNodeId) {
-                li.textContent = masterNode.name;
-                li.dataset.nodeId = existingNodeId;
-                li.style.color = 'var(--text-light-grey)';
-                if (selectedNodeIds.has(existingNodeId)) {
-                    li.classList.add('selected');
-                }
-                li.addEventListener('click', () => {
-                    selectedNodeIds.clear();
-                    selectedNodeIds.add(existingNodeId);
-                    updateSelectionUI();
-                });
-            } else {
-                li.innerHTML = `<span>${masterNode.name}</span><span style="color: var(--status-green);">[+]</span>`;
-                li.style.color = 'var(--text-dark-grey)';
-                li.title = 'Click to add to canvas';
-                li.addEventListener('click', () => {
-                    let newId = id;
-                    let counter = 1;
-                    while (TREE_DATA[newId]) {
-                        newId = `${id}_${counter++}`;
-                    }
+                filteredList.forEach(([id, masterNode]) => {
+                    const li = document.createElement('li');
+                    const existingNodeId = nodesOnCanvas.get(masterNode.name);
 
-                    if (isQuickAddLinkMode && quickAddLinkParent) {
-                        const parentNode = TREE_DATA[quickAddLinkParent];
-                        if (!parentNode.quickAddChildCount) parentNode.quickAddChildCount = 0;
-                        
-                        const parentX = parseFloat(parentNode.pos.x);
-                        const parentY = parseFloat(parentNode.pos.y);
-                        
-                        // Place new nodes in a circle around the parent
-                        const angle = parentNode.quickAddChildCount * (Math.PI / 4); // 45-degree increments
-                        const radius = 0.3; // 0.3% of canvas width, which is 150px.
-                        const newX = parentX + radius * Math.cos(angle);
-                        const newY = parentY + radius * Math.sin(angle);
-
-                        TREE_DATA[newId] = {
-                            type: 'minor', name: masterNode.name, desc: `The '${masterNode.name}' node.`, cost: 1, status: 'locked',
-                            deps: [quickAddLinkParent], pos: { x: `${newX.toFixed(2)}%`, y: `${newY.toFixed(2)}%` },
-                            icon: masterNode.icon
-                        };
-                        parentNode.quickAddChildCount++;
+                    if (existingNodeId) {
+                        li.textContent = masterNode.name;
+                        li.dataset.nodeId = existingNodeId;
+                        li.style.color = 'var(--text-light-grey)';
+                        if (selectedNodeIds.has(existingNodeId)) {
+                            li.classList.add('selected');
+                        }
+                        li.addEventListener('click', () => {
+                            selectedNodeIds.clear();
+                            selectedNodeIds.add(existingNodeId);
+                            updateSelectionUI();
+                        });
                     } else {
-                        const canvasWidth = treeCanvas.offsetWidth;
-                        const canvasHeight = treeCanvas.offsetHeight;
-                        const centerX = ((-canvasX + treePanel.clientWidth / 2) / scale);
-                        const centerY = ((-canvasY + treePanel.clientHeight / 2) / scale);
-                        const xPercent = (centerX / canvasWidth * 100).toFixed(2);
-                        const yPercent = (centerY / canvasHeight * 100).toFixed(2);
+                        li.innerHTML = `<span>${masterNode.name}</span><span style="color: var(--status-green);">[+]</span>`;
+                        li.style.color = 'var(--text-dark-grey)';
+                        li.title = isShapeListBuildingMode ? 'Click to add to shape list' : 'Click to add to canvas';
+                        
+                        li.addEventListener('click', () => {
+                            if (isShapeListBuildingMode) {
+                                if (!shapeNodeList.includes(masterNode.name)) {
+                                    shapeNodeList.push(masterNode.name);
+                                    renderShapeNodeList();
+                                }
+                            } else {
+                                let newId = id;
+                                let counter = 1;
+                                while (TREE_DATA[newId]) {
+                                    newId = `${id}_${counter++}`;
+                                }
 
-                        TREE_DATA[newId] = {
-                            type: 'minor', name: masterNode.name, desc: `The '${masterNode.name}' node.`, cost: 1, status: 'locked',
-                            deps: [], pos: { x: `${xPercent}%`, y: `${yPercent}%` },
-                            icon: masterNode.icon
-                        };
+                                if (isQuickAddLinkMode && quickAddLinkParent) {
+                                    const parentNode = TREE_DATA[quickAddLinkParent];
+                                    if (!parentNode.quickAddChildCount) parentNode.quickAddChildCount = 0;
+                                    
+                                    const parentX = parseFloat(parentNode.pos.x);
+                                    const parentY = parseFloat(parentNode.pos.y);
+                                    
+                                    const angle = parentNode.quickAddChildCount * (Math.PI / 4); // 45-degree increments
+                                    const radius = 0.3; // 0.3% of canvas width, which is 150px.
+                                    const newX = parentX + radius * Math.cos(angle);
+                                    const newY = parentY + radius * Math.sin(angle);
+
+                                    TREE_DATA[newId] = {
+                                        type: 'minor', name: masterNode.name, desc: `The '${masterNode.name}' node.`, cost: 1, status: 'locked',
+                                        deps: [quickAddLinkParent], pos: { x: `${newX.toFixed(2)}%`, y: `${newY.toFixed(2)}%` },
+                                        icon: masterNode.icon
+                                    };
+                                    parentNode.quickAddChildCount++;
+                                } else {
+                                    const canvasWidth = treeCanvas.offsetWidth;
+                                    const canvasHeight = treeCanvas.offsetHeight;
+                                    const centerX = ((-canvasX + treePanel.clientWidth / 2) / scale);
+                                    const centerY = ((-canvasY + treePanel.clientHeight / 2) / scale);
+                                    const xPercent = (centerX / canvasWidth * 100).toFixed(2);
+                                    const yPercent = (centerY / canvasHeight * 100).toFixed(2);
+
+                                    TREE_DATA[newId] = {
+                                        type: 'minor', name: masterNode.name, desc: `The '${masterNode.name}' node.`, cost: 1, status: 'locked',
+                                        deps: [], pos: { x: `${xPercent}%`, y: `${yPercent}%` },
+                                        icon: masterNode.icon
+                                    };
+                                }
+
+                                renderNodes();
+                                renderLines();
+                                renderNodeList();
+                                selectedNodeIds.clear();
+                                selectedNodeIds.add(newId);
+                                updateSelectionUI();
+                            }
+                        });
                     }
-
-                    renderNodes();
-                    renderLines();
-                    renderNodeList();
-                    selectedNodeIds.clear();
-                    selectedNodeIds.add(newId);
-                    updateSelectionUI();
+                    nodeList.appendChild(li);
                 });
             }
-            nodeList.appendChild(li);
-        });
-    }
 
     nodeSearchInput.addEventListener('input', renderNodeList);
 
+    const CLAN_ICONS = [
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Achiever.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Adamant.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Adept.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Administrator.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Admiral.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Adventurer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Air.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Anchor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Apothecary.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Archer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Armadylean.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Artillery.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Artisan.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Asgarnian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Assassin.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Assistant.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Astral.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Athlete.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Attacker.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bandit.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bandosian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Barbarian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Battlemage.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Beast.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Berserker.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Blisterwood.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Blood.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Blue.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bob.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Body.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Brassican.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Brawler.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Brigadier.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Brigand.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bronze.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bruiser.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Bulwark.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Burglar.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Burnt.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Cadet.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Captain.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Carry.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Champion.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Chaos.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Cleric.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Collector.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Colonel.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Commander.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Competitor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Completionist.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Constructor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Cook.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Coordinator.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Corporal.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Cosmic.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Councillor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Crafter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Crew.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Crusader.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Cutpurse.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Death.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Defender.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Defiler.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Deputy_owner.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Destroyer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Diamond.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Diseased.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Doctor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Dogsbody.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Dragon.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Dragonstone.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Druid.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Duellist.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Earth.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Elite.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Emerald.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Enforcer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Epic.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Executive.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Expert.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Explorer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Farmer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Feeder.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Fighter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Fire.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Firemaker.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Firestarter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Fisher.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Fletcher.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Forager.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Fremennik.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Gamer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Gatherer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_General.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Gnome_Child.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Gnome_Elder.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Goblin.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Gold.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Goon.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Green.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Grey.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Guardian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Guest.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Guthixian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Harpoon.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Healer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Hellcat.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Helper.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Herbologist.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Hero.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Hoarder.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Holy.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Hunter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Ignitor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Illusionist.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Imp.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Infantry.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Inquisitor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Iron.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Jade.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Jmod.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Justiciar.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Kandarin.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Karamjan.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Kharidian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Kitten.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Knight.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Labourer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Law.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Leader.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Learner.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Legacy.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Legend.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Legionnaire.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Lieutenant.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Looter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Lumberjack.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Magic.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Magician.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Major.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Maple.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Marshal.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Master.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Maxed.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Mediator.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Medic.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Mentor.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Merchant.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Mind.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Miner.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Minion.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Misthalinian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Mithril.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Moderator.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Monarch.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Morytanian.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Mystic.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Myth.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Natural.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Nature.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Necromancer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Ninja.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Noble.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Novice.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Nurse.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Oak.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Officer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Onyx.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Opal.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Oracle.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Orange.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Owner.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Page.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Paladin.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pawn.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pilgrim.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pine.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pink.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Prefect.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Priest.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Private.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Prodigy.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Proselyte.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Prospector.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Protector.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pure.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Purple.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Pyromancer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Quester.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Racer.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Raider.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Ranger.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Record-chaser.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Recruit.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Recruiter.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Red.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Red_Topaz.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Rogue.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Ruby.png',
+        'https://oldschool.runescape.wiki/images/Clan_icon_-_Rune.png',
+    ];
+
     function populateIconPicker() {
         iconPool.innerHTML = '';
-        ICON_POOL.forEach(iconUrl => {
+        const masterIcons = Object.values(MASTER_NODE_LIBRARY).map(node => node.icon).filter(Boolean);
+        const allIcons = [...masterIcons, ...CLAN_ICONS];
+        const uniqueIcons = [...new Set(allIcons)];
+        uniqueIcons.sort();
+
+        uniqueIcons.forEach(iconUrl => {
             const img = document.createElement('img');
             img.src = iconUrl;
             img.addEventListener('click', () => {
@@ -480,6 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
             infoNodeY.textContent = '--';
             editNodePanel.style.display = 'none';
             iconPickerPanel.style.display = 'none';
+            multiSelectActionsPanel.style.display = selectedNodeIds.size > 1 ? 'block' : 'none';
         }
     }
 
@@ -511,41 +951,45 @@ document.addEventListener('DOMContentLoaded', () => {
             
             nodeEl.addEventListener('mousedown', (e) => {
                 if (isQuickAddLinkMode) {
+                    // DIAGNOSTIC: Immediately update button text to prove this block is reached
+                    quickAddLinkBtn.textContent = `Clicked ${id}`;
                     if (!quickAddLinkParent) {
                         quickAddLinkParent = id;
-                        quickAddLinkBtn.textContent = `Adding to ${TREE_DATA[id].name}`;
+                        quickAddLinkBtn.textContent = `Parent: ${TREE_DATA[id].name}`;
                         document.querySelectorAll('.node').forEach(el => el.classList.remove('dimmed'));
                     }
                     return;
                 }
 
-                e.stopPropagation();
-                isDragging = true;
-                activeNodeEl = e.currentTarget;
-                
-                if (e.shiftKey) {
-                    if (selectedNodeIds.has(id)) {
-                        selectedNodeIds.delete(id);
-                    } else {
+                if (!isInLinkMode) {
+                    e.stopPropagation();
+                    isDragging = true;
+                    activeNodeEl = e.currentTarget;
+                    
+                    if (e.shiftKey) {
+                        if (selectedNodeIds.has(id)) {
+                            selectedNodeIds.delete(id);
+                        } else {
+                            selectedNodeIds.add(id);
+                        }
+                    } else if (!selectedNodeIds.has(id)) {
+                        selectedNodeIds.clear();
                         selectedNodeIds.add(id);
                     }
-                } else if (!selectedNodeIds.has(id)) {
-                    selectedNodeIds.clear();
-                    selectedNodeIds.add(id);
-                }
-                updateSelectionUI();
+                    updateSelectionUI();
 
-                initialMultiNodePositions.clear();
-                selectedNodeIds.forEach(selectedId => {
-                     const el = document.getElementById(selectedId);
-                     initialMultiNodePositions.set(selectedId, {
-                        left: (parseFloat(el.style.left) / 100) * treeCanvas.offsetWidth,
-                        top: (parseFloat(el.style.top) / 100) * treeCanvas.offsetHeight
-                     });
-                });
-                
-                startX = e.clientX;
-                startY = e.clientY;
+                    initialMultiNodePositions.clear();
+                    selectedNodeIds.forEach(selectedId => {
+                         const el = document.getElementById(selectedId);
+                         initialMultiNodePositions.set(selectedId, {
+                            left: (parseFloat(el.style.left) / 100) * treeCanvas.offsetWidth,
+                            top: (parseFloat(el.style.top) / 100) * treeCanvas.offsetHeight
+                         });
+                    });
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }
             });
             treeContainer.appendChild(nodeEl);
         });
@@ -800,31 +1244,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     deleteNodeBtn.addEventListener('click', () => {
         if (selectedNodeIds.size === 0) return;
-        if (confirm(`Are you sure you want to delete ${selectedNodeIds.size} node(s)? This cannot be undone.`)) {
-            selectedNodeIds.forEach(nodeId => {
-                if (nodeId === 'genesis') {
-                    alert("Cannot delete the Genesis node.");
-                    return;
-                };
 
+        // NO CONFIRMATION - Immediate action
+        selectedNodeIds.forEach(nodeId => {
+            if (nodeId === 'genesis') {
+                console.log("Cannot delete the Genesis node.");
+                return;
+            };
+
+            if (TREE_DATA[nodeId]) {
                 delete TREE_DATA[nodeId];
-                
-                Object.keys(TREE_DATA).forEach(otherId => {
-                    const otherNode = TREE_DATA[otherId];
-                    if (otherNode.deps) {
-                        const index = otherNode.deps.indexOf(nodeId);
-                        if (index > -1) {
-                            otherNode.deps.splice(index, 1);
-                        }
+            }
+            
+            Object.values(TREE_DATA).forEach(otherNode => {
+                if (otherNode.deps) {
+                    const index = otherNode.deps.indexOf(nodeId);
+                    if (index > -1) {
+                        otherNode.deps.splice(index, 1);
                     }
-                });
+                }
             });
-            selectedNodeIds.clear();
-            renderNodes();
-            renderLines();
-            renderNodeList();
-            updateSelectionUI();
-        }
+        });
+
+        selectedNodeIds.clear();
+        renderNodes();
+        renderLines();
+        renderNodeList();
+        updateSelectionUI();
     });
 
     function linkModeClickHandler(e) {
@@ -946,19 +1392,83 @@ document.addEventListener('DOMContentLoaded', () => {
     unlinkAllBtn.addEventListener('click', () => {
         if (!isInLinkMode || !linkModeParent) return;
 
-        if (confirm(`Are you sure you want to unlink all children from "${TREE_DATA[linkModeParent].name}"?`)) {
-            Object.keys(TREE_DATA).forEach(id => {
-                const node = TREE_DATA[id];
-                if (node.deps) {
-                    const index = node.deps.indexOf(linkModeParent);
-                    if (index > -1) {
-                        node.deps.splice(index, 1);
-                    }
-                }
-            });
-            renderLines();
-        }
+        // NO CONFIRMATION - Immediate action
+        Object.values(TREE_DATA).forEach(node => {
+            if (node.deps && Array.isArray(node.deps)) {
+                node.deps = node.deps.filter(dep => dep !== linkModeParent);
+            }
+        });
+        
+        renderLines();
     });
+
+    function transformSelectedNodes(action) {
+        if (selectedNodeIds.size < 2) return;
+
+        const nodes = [];
+        selectedNodeIds.forEach(id => nodes.push(TREE_DATA[id]));
+
+        const canvasWidth = treeCanvas.offsetWidth;
+        const canvasHeight = treeCanvas.offsetHeight;
+
+        // 1. Calculate centroid in pixels
+        let sumX = 0, sumY = 0;
+        nodes.forEach(node => {
+            sumX += parseFloat(node.pos.x) / 100 * canvasWidth;
+            sumY += parseFloat(node.pos.y) / 100 * canvasHeight;
+        });
+        const centerX = sumX / nodes.length;
+        const centerY = sumY / nodes.length;
+
+        // 2. Apply transformation
+        const angle = 45 * (Math.PI / 180); // 45 degrees in radians
+        const scaleFactor = action === 'expand' ? 1.1 : 0.9;
+
+        nodes.forEach(node => {
+            const nodeX = parseFloat(node.pos.x) / 100 * canvasWidth;
+            const nodeY = parseFloat(node.pos.y) / 100 * canvasHeight;
+
+            const relX = nodeX - centerX;
+            const relY = nodeY - centerY;
+
+            let newRelX, newRelY;
+
+            switch (action) {
+                case 'rotate-right':
+                    newRelX = relX * Math.cos(angle) - relY * Math.sin(angle);
+                    newRelY = relX * Math.sin(angle) + relY * Math.cos(angle);
+                    break;
+                case 'rotate-left':
+                    newRelX = relX * Math.cos(-angle) - relY * Math.sin(-angle);
+                    newRelY = relX * Math.sin(-angle) + relY * Math.cos(-angle);
+                    break;
+                case 'flip-horizontal':
+                    newRelX = -relX;
+                    newRelY = relY;
+                    break;
+                case 'flip-vertical':
+                    newRelX = relX;
+                    newRelY = -relY;
+                    break;
+                case 'expand':
+                case 'contract':
+                    newRelX = relX * scaleFactor;
+                    newRelY = relY * scaleFactor;
+                    break;
+            }
+
+            const newAbsX = centerX + newRelX;
+            const newAbsY = centerY + newRelY;
+
+            node.pos.x = (newAbsX / canvasWidth * 100).toFixed(2) + '%';
+            node.pos.y = (newAbsY / canvasHeight * 100).toFixed(2) + '%';
+        });
+
+        // 3. Re-render
+        renderNodes();
+        renderLines();
+    }
+
 
     saveBtn.addEventListener('click', () => {
         try {
@@ -1027,4 +1537,89 @@ document.addEventListener('DOMContentLoaded', () => {
     populateIconPicker();
     populateCategoryFilters();
     applyTransform();
+
+    buildShapeListBtn.addEventListener('click', toggleShapeListBuildMode);
+    // Shape Preset Listeners
+    buildShapeListBtn.addEventListener('click', toggleShapeListBuildMode);
+    clearShapeListBtn.addEventListener('click', () => {
+        shapeNodeList = [];
+        renderShapeNodeList();
+    });
+    createShapeBtn.addEventListener('click', createNodeShape);
+
+    // Group Action Listeners
+    rotateRightBtn.addEventListener('click', () => transformSelectedNodes('rotate-right'));
+    rotateLeftBtn.addEventListener('click', () => transformSelectedNodes('rotate-left'));
+    flipHorizontalBtn.addEventListener('click', () => transformSelectedNodes('flip-horizontal'));
+    flipVerticalBtn.addEventListener('click', () => transformSelectedNodes('flip-vertical'));
+    expandNodesBtn.addEventListener('click', () => transformSelectedNodes('expand'));
+    contractNodesBtn.addEventListener('click', () => transformSelectedNodes('contract'));
+
+    const toggleNodeListSizeBtn = document.getElementById('toggle-node-list-size-btn');
+    const nodeListPanel = document.getElementById('node-list-panel');
+    const nodeListHeader = nodeListPanel.querySelector('h3');
+    let isNodeListFloating = false;
+
+    const originalParent = nodeListPanel.parentElement;
+    const originalNextSibling = nodeListPanel.nextElementSibling;
+
+    let isDraggingPanel = false;
+    let panelDragOffsetX = 0;
+    let panelDragOffsetY = 0;
+
+    toggleNodeListSizeBtn.addEventListener('click', () => {
+        isNodeListFloating = !isNodeListFloating;
+        if (isNodeListFloating) {
+            const rect = nodeListPanel.getBoundingClientRect();
+            document.body.appendChild(nodeListPanel);
+            nodeListPanel.style.cssText = `
+                position: fixed;
+                top: ${rect.top}px;
+                left: ${rect.left}px;
+                width: 350px;
+                height: 400px;
+                z-index: 9999;
+                background-color: #1e1e1e; /* Solid background */
+                border: 1px solid var(--border-bevel);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+                display: flex;
+                flex-direction: column;
+                transform: translateZ(0); /* Promote to new rendering layer */
+            `;
+            nodeListHeader.style.cursor = 'move';
+            document.getElementById('node-list').style.overflowY = 'auto';
+            document.getElementById('node-list').style.flexGrow = '1';
+            toggleNodeListSizeBtn.innerHTML = '&#x21E2;'; // Dock icon
+            toggleNodeListSizeBtn.title = 'Dock Panel';
+        } else {
+            nodeListPanel.style.cssText = '';
+            originalParent.insertBefore(nodeListPanel, originalNextSibling);
+            nodeListHeader.style.cursor = '';
+            toggleNodeListSizeBtn.innerHTML = '&#x2750;'; // Maximize icon
+            toggleNodeListSizeBtn.title = 'Pop-out Panel';
+        }
+    });
+
+    nodeListHeader.addEventListener('mousedown', (e) => {
+        if (isNodeListFloating && e.target.tagName !== 'BUTTON') {
+            isDraggingPanel = true;
+            const rect = nodeListPanel.getBoundingClientRect();
+            panelDragOffsetX = e.clientX - rect.left;
+            panelDragOffsetY = e.clientY - rect.top;
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDraggingPanel) {
+            nodeListPanel.style.left = `${e.clientX - panelDragOffsetX}px`;
+            nodeListPanel.style.top = `${e.clientY - panelDragOffsetY}px`;
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDraggingPanel = false;
+    });
+
+    createShapeBtn.addEventListener('click', createNodeShape);
 });
