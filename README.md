@@ -1,52 +1,48 @@
 # Path of the Prodigy
 
-## Overview
+"Path of the Prodigy" is a web-based companion application for a unique "snowflake" gameplay style in Old School RuneScape. It provides a structured, engaging progression path through an interactive talent tree.
 
-"Path of the Prodigy" is a web-based companion application for the MMORPG Old School RuneScape (OSRS). It's designed to guide a unique "snowflake" gameplay style where players must unlock skills, items, and content through an interactive talent tree, rather than having them available by default.
+This repository contains two main components: the player-facing application and a standalone editor for creating the talent tree.
 
-This project consists of two main parts:
+## Project Structure
 
-1.  **The Main Application (`index.html`):** A player-facing app that displays the talent tree and tracks a player's progress and unlocks.
-2.  **The Tree Editor (`TreeEditor.html`):** A powerful, standalone authoring tool for creating, editing, and managing the talent trees used by the main application.
+The repository is organized into two main directories: `/app` and `/editor`.
 
-## File Structure
+### Main Application (`/app`)
 
--   `index.html`: The main player-facing application.
--   `script.js`: JavaScript for the main application.
--   `style.css`: CSS for the main application.
--   `TreeEditor.html`: The standalone talent tree editor.
--   `spec.md`: The detailed project specification document.
+This is the player-facing application for tracking progression.
 
-## How to Use
+-   `app/index.html`: The main HTML file for the application.
+-   `app/style.css`: The stylesheet for the application.
+-   `app/script.js`: The JavaScript logic for the application.
 
-### Tree Editor (`TreeEditor.html`)
+### Tree Editor (`/editor`)
 
-The Tree Editor is the heart of the content creation process. Use it to build and define the structure of your talent tree.
+This is a standalone utility for creating and modifying the skill tree.
 
-**Features:**
--   **Build from a Master List:** The "All Nodes" panel contains a comprehensive, categorized, and searchable library of OSRS skills, quests, raids, and items. Click the `[+]` button to add any node to your canvas.
--   **Visual Editing:** Drag and drop nodes on a vast, pannable, and zoomable canvas.
--   **Minimap:** A minimap in the corner allows for quick navigation of large trees.
--   **Node Customization:** Select a node to:
-    -   Rename it.
-    -   Change its size (`Minor`, `Major`, `Epic`, `Legendary`).
-    -   Edit its description with template support.
-    -   Change its icon from a large pool of in-game images.
--   **Linking:** Use the "Link Mode" to quickly create or remove parent-child dependencies by clicking on nodes.
--   **Quick-Add & Link:** A special mode to rapidly add and link new child nodes from the library to a selected parent.
--   **Dynamic Counter:** The node library shows a live `used/total` count that updates as you filter and add nodes.
--   **Save/Load:** Save your tree progress to a `.json` file on your computer and load it back into the editor at any time.
+-   `editor/TreeEditor.html`: The main HTML file for the editor.
+-   `editor/TreeEditor.css`: The stylesheet for the editor.
+-   `editor/js/`: Contains the modular JavaScript for the editor.
+    -   `editor/js/main.js`: The main entry point for the editor's JavaScript, which initializes all modules and sets up global event listeners.
+    -   `editor/js/constants/`: Contains static data.
+        - `icons.js`: Exports arrays of icon URLs.
+        - `masterNodeLibrary.js`: Exports the master list of all potential nodes (skills, quests, etc.).
+    -   `editor/js/dom/`:
+        - `elements.js`: Selects and exports all necessary DOM element references.
+    -   `editor/js/features/`: Contains the core logic for the editor's features.
+        - `renderer.js`: The view layer, responsible for all rendering and DOM updates.
+        - `canvas.js`: Handles canvas interactions like panning, zooming, and minimap clicks.
+        - `nodes.js`: Manages the lifecycle of nodes (creation, deletion, dragging, editing).
+        - `linking.js`: Manages the logic for creating and removing node dependencies.
+        - `shapes.js`: Handles the creation of predefined node patterns (grids, circles, etc.).
+        - `io.js`: Manages saving and loading the tree data to/from a JSON file.
+        - `ui.js`: Manages UI elements not directly on the canvas, like the pop-out node list.
+    -   `editor/js/state/`:
+        - `appState.js`: Exports the global `state` object that holds all dynamic application data.
+    -   `editor/js/utils/`:
+        - `transformations.js`: Contains the logic for multi-node transformations (rotate, flip, scale).
 
-**Workflow:**
-1.  Open `TreeEditor.html` in your browser.
-2.  Use the "All Nodes" list to add skills, quests, and other unlocks to the canvas.
-3.  Arrange, resize, and customize your nodes.
-4.  Use "Link Mode" to define the dependencies and create your tree structure.
-5.  Click "Save Tree to File" to download your `skill-tree.json` file.
+### Root Files
 
-### Main Application (`index.html`)
-
-The main application is where a player would interact with a finished tree. (Note: The logic to load and use the JSON file in this part of the application is a future goal).
-
----
-*This README was last updated on October 7, 2025.*
+-   `README.md`: This file, providing an overview of the project.
+-   `spec.md`: The detailed project specification document for development.
