@@ -25,26 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
         Farming: { icon: 'https://oldschool.runescape.wiki/images/Farming_icon.png' },
     };
 
+    const QUEST_LIST = ["X Marks the Spot", "Witch's Potion", "Vampyre Slayer", "Shield of Arrav", "Sheep Shearer", "Rune Mysteries", "Romeo & Juliet", "The Restless Ghost", "Prince Ali Rescue", "Pirate's Treasure", "Misthalin Mystery", "The Knight's Sword", "Imp Catcher", "Goblin Diplomacy", "Ernest the Chicken", "Dragon Slayer I", "Doric's Quest", "Demon Slayer", "The Corsair Curse", "Cook's Assistant", "Black Knights' Fortress", "Below Ice Mountain", "Druidic Ritual", "Lost City", "Witch's House", "Merlin's Crystal", "Heroes' Quest", "Scorpion Catcher", "Family Crest", "Fishing Contest", "Tribal Totem", "Monk's Friend", "Temple of Ikov", "Clock Tower", "Holy Grail", "Tree Gnome Village", "Fight Arena", "Hazeel Cult", "Sheep Herder", "Plague City", "Sea Slug", "Waterfall Quest", "Jungle Potion", "The Grand Tree", "Underground Pass", "Observatory Quest", "The Tourist Trap", "Watchtower", "Dwarf Cannon", "Murder Mystery", "The Dig Site", "Gertrude's Cat", "Legends' Quest", "Death Plateau", "Eadgar's Ruse", "Big Chompy Bird Hunting", "Elemental Workshop I", "Nature Spirit", "Priest in Peril", "Regicide", "Tai Bwo Wannai Trio", "Troll Stronghold", "Shades of Mort'ton", "The Fremennik Trials", "Horror from the Deep", "Throne of Miscellania", "Monkey Madness I", "Haunted Mine", "Troll Romance", "In Search of the Myreque", "Creature of Fenkenstrain", "Roving Elves", "Ghosts Ahoy", "One Small Favour", "Mountain Daughter", "Between a Rock...", "The Feud", "The Golem", "Desert Treasure I", "Icthlarin's Little Helper", "Tears of Guthix", "The Lost Tribe", "The Giant Dwarf", "Recruitment Drive", "Mourning's End Part I", "Forgettable Tale...", "Garden of Tranquillity", "A Tail of Two Cats", "Wanted!", "Mourning's End Part II", "Rum Deal", "Shadow of the Storm", "Making History", "Ratcatchers", "Spirits of the Elid", "Devious Minds", "The Hand in the Sand", "Enakhra's Lament", "Cabin Fever", "Fairytale I - Growing Pains", "Recipe for Disaster", "In Aid of the Myreque", "A Soul's Bane", "Rag and Bone Man I", "Rag and Bone Man II", "Swan Song", "Royal Trouble", "Death to the Dorgeshuun", "Fairytale II - Cure a Queen", "Lunar Diplomacy", "The Eyes of Glouphrie", "Darkness of Hallowvale", "The Slug Menace", "Elemental Workshop II", "My Arm's Big Adventure", "Enlightened Journey", "Eagles' Peak", "Animal Magnetism", "Contact!", "Cold War", "The Fremennik Isles", "Tower of Life", "The Great Brain Robbery", "What Lies Below", "Olaf's Quest", "Another Slice of H.A.M.", "Dream Mentor", "Dragon Slayer II", "Bone Voyage", "The Queen of Thieves", "The Depths of Despair", "Client of Kourend", "Architectural Alliance", "The Forsaken Tower", "Ascent of Arceuus", "Tale of the Righteous", "A Taste of Hope", "Making Friends with My Arm", "The Fremennik Exiles", "Sins of the Father", "A Porcine of Interest", "Getting Ahead", "Below Ice Mountain", "X Marks the Spot", "Daddy's Home", "Sleeping Giants", "The Garden of Death", "Temple of the Eye", "Secrets of the North", "Desert Treasure II - The Fallen Empire", "His Faithful Servants", "The Path of Glouphrie", "Children of the Sun", "Defender of Varrock", "While Guthix Sleeps", "Land of the Goblins"];
+
     let PLAYER_STATE = {
         pp: 5, 
         skills: Object.keys(SKILL_DATA).reduce((acc, skill) => {
             acc[skill] = { level: 1, unlocked: false };
             return acc;
         }, {}),
-        quests: [
-            { name: "Cook's Assistant", id: 'quest_cooks_assistant', status: 'not_started' }, 
-            { name: 'Dragon Slayer', id: 'quest_dragon_slayer', status: 'not_started' },
-            { name: 'The Restless Ghost', id: 'quest_restless_ghost', status: 'not_started' },
-            { name: 'Rune Mysteries', id: 'quest_rune_mysteries', status: 'not_started' },
-            { name: 'Sheep Shearer', id: 'quest_sheep_shearer', status: 'not_started' },
-            { name: 'Goblin Diplomacy', id: 'quest_goblin_diplomacy', status: 'not_started' }, 
-            { name: 'Doric\'s Quest', id: 'quest_dorics_quest', status: 'not_started' }, 
-            { name: 'Ernest the Chicken', id: 'quest_ernest_the_chicken', status: 'not_started' },
-            { name: 'Druidic Ritual', id: 'quest_druidic_ritual', status: 'not_started' }, 
-            { name: 'Imp Catcher', id: 'quest_imp_catcher', status: 'not_started' }, 
-            { name: 'The Knight\'s Sword', id: 'quest_knights_sword', status: 'not_started' }, 
-            { name: "Daddy's Home", id: 'quest_daddys_home', status: 'not_started' },
-        ]
+        quests: QUEST_LIST.map(q => ({
+            name: q,
+            id: 'quest_' + q.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+            status: 'not_started'
+        }))
     };
     PLAYER_STATE.skills.Attack.unlocked = true;
     PLAYER_STATE.skills.Strength.unlocked = true;
@@ -287,6 +280,11 @@ let TREE_DATA = {};
         
         node.status = 'unlocked';
 
+        // If this node is a quest, complete it
+        if (nodeId.startsWith('quest_')) {
+            completeQuest(nodeId, { fromTree: true });
+        }
+
         if (node.unlocksQuest) {
             const questToUnlock = PLAYER_STATE.quests.find(q => q.id === node.unlocksQuest);
             if (questToUnlock && questToUnlock.status === 'not_started') {
@@ -307,14 +305,22 @@ let TREE_DATA = {};
         renderQuests(); 
     };
     
-    const completeQuest = (questId) => {
+    const completeQuest = (questId, options = {}) => {
         const quest = PLAYER_STATE.quests.find(q => q.id === questId);
         
         if (!quest || quest.status === 'complete') return; 
 
         quest.status = 'complete';
-        addLog(`Quest '${quest.name}' completed!`, 'info');
+        if (!options.fromTree) {
+            addLog(`Quest '${quest.name}' completed!`, 'info');
+        }
         
+        // Also update the corresponding node in the tree if it exists
+        const node = TREE_DATA[questId];
+        if (node && node.status !== 'unlocked') {
+            node.status = 'unlocked';
+        }
+
         updateNodeStatuses();
         renderTree();
         renderQuests(); 
@@ -599,44 +605,39 @@ let TREE_DATA = {};
     }
 
     function renderQuests() {
-        const unlockedQuestPrerequisites = Object.keys(TREE_DATA)
-            .filter(id => TREE_DATA[id].unlocksQuest && TREE_DATA[id].status === 'unlocked')
-            .map(id => TREE_DATA[id].unlocksQuest);
+        const questsInTree = new Set(
+            Object.keys(TREE_DATA).filter(id => id.startsWith('quest_'))
+        );
 
         questList.innerHTML = '';
-        PLAYER_STATE.quests.forEach(quest => {
+        const questsToRender = PLAYER_STATE.quests.filter(q => questsInTree.has(q.id));
+
+        questsToRender.forEach(quest => {
             const item = document.createElement('li');
             item.className = 'quest-item';
 
-            const isTreeUnlocked = unlockedQuestPrerequisites.includes(quest.id);
-            
-            let statusClass = quest.status;
-            let clickable = false;
-            let isLocked = false;
+            const node = TREE_DATA[quest.id];
+            let statusClass = 'locked'; // Default to locked
 
-            if (quest.status === 'complete') {
-                statusClass = 'complete';
-            } else if (isTreeUnlocked) {
-                statusClass = quest.status === 'not_started' ? 'in_progress' : quest.status;
-                clickable = true;
-            } else {
-                statusClass = 'locked';
-                isLocked = true;
+            if (node) {
+                if (node.status === 'unlocked') {
+                    statusClass = 'complete';
+                    // Make sure the central quest state is also complete
+                    if (quest.status !== 'complete') {
+                        quest.status = 'complete';
+                    }
+                } else if (node.status === 'available') {
+                    statusClass = 'in_progress';
+                } else {
+                    statusClass = 'locked';
+                }
             }
 
             item.innerHTML = `
                 <div class="quest-status ${statusClass}"></div>
                 <span>${quest.name}</span>
-                ${isLocked ? '<i class="fas fa-lock" style="margin-left: auto;"></i>' : ''}
+                ${statusClass === 'locked' ? '<i class="fas fa-lock" style="margin-left: auto;"></i>' : ''}
             `;
-            
-            if (clickable) {
-                item.classList.add('clickable');
-                item.style.cursor = 'pointer';
-                item.addEventListener('click', () => {
-                    completeQuest(quest.id);
-                });
-            }
 
             questList.appendChild(item);
         });
@@ -696,7 +697,7 @@ let TREE_DATA = {};
 
         // Center the view on the genesis node
         const genesisNode = Object.values(TREE_DATA).find(node => node.name === 'Genesis');
-        const canvasSize = 8000;
+        const canvasSize = 50000;
         const panelRect = treeView.getBoundingClientRect();
         if (genesisNode) {
             const nodeX = parseFloat(genesisNode.pos.x) / 100 * canvasSize;
