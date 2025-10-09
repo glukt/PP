@@ -6,6 +6,38 @@ This repository contains two main components: the player-facing application and 
 
 ## Project Structure
 
+```
+/
+├── app/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── editor/
+│   ├── TreeEditor.css
+│   ├── TreeEditor.html
+│   └── js/
+│       ├── main.js
+│       ├── constants/
+│       │   ├── icons.js
+│       │   └── masterNodeLibrary.js
+│       ├── dom/
+│       │   └── elements.js
+│       ├── features/
+│       │   ├── canvas.js
+│       │   ├── io.js
+│       │   ├── linking.js
+│       │   ├── nodes.js
+│       │   ├── renderer.js
+│       │   ├── shapes.js
+│       │   └── ui.js
+│       ├── state/
+│       │   └── appState.js
+│       └── utils/
+│           └── transformations.js
+├── README.md
+└── spec.md
+```
+
 The repository is organized into two main directories: `/app` and `/editor`.
 
 ### Main Application (`/app`)
